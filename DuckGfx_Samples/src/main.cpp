@@ -3,13 +3,12 @@
 #include "DuckGfx.h"
 
 
-
 #define MAX_LOADSTRING 100
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
-WCHAR * szTitle = L"DuckGfx Samples";                // The title bar text
-WCHAR * szWindowClass = L"Window";            // the main window class name
+char * szTitle = "DuckGfx Samples";                // The title bar text
+char * szWindowClass = "Window";            // the main window class name
 bool running = true;
                                                 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -33,8 +32,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
   // Perform application initialization:
   HWND windowHandle;
-  if (!InitInstance(hInstance, nCmdShow, &windowHandle))
-  {
+  if (!InitInstance(hInstance, nCmdShow, &windowHandle)) {
     DWORD err = GetLastError();
 
     return FALSE;
@@ -74,7 +72,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-  WNDCLASSEXW wcex;
+  WNDCLASSEX wcex;
 
 
   ZeroMemory(&wcex, sizeof(WNDCLASSEX));
@@ -89,7 +87,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
   wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
   wcex.lpszClassName = szWindowClass;
 
-  return RegisterClassExW(&wcex);
+  return RegisterClassEx(&wcex);
 }
 
 //
@@ -106,7 +104,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND * outWnd)
 {
   hInst = hInstance; // Store instance handle in our global variable
 
-  HWND hWnd = CreateWindowW(szWindowClass, 
+  HWND hWnd = CreateWindow(szWindowClass, 
                             szTitle, 
                             WS_OVERLAPPEDWINDOW, 
                             CW_USEDEFAULT, 
