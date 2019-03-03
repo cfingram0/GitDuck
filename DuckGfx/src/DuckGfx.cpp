@@ -236,7 +236,6 @@ namespace duckGfx {
     globalContext.pImmediateContext->DrawIndexed(3, 0, 0);
 
 
-
     // flip the swap chain, with vsync
     globalContext.pSwapChain->Present(1, 0);
     counter++;
@@ -248,6 +247,5 @@ namespace duckGfx {
     globalContext.pImmediateContext->Release();
     globalContext.pDevice->Release();
     globalContext.pSwapChain->Release();
-
   }
 }

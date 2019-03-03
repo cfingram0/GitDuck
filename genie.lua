@@ -19,29 +19,37 @@ solution "DuckSolution"
         links {"DuckGfx", "Core", "d3d11", "dxgi", "d3dcompiler"}
         includedirs {"Core/include", "DuckGfx/include"}
         defines {"WIN32"}
-        flags {"WinMain"}
+        flags {"WinMain", "Symbols"}
         
         configuration "Debug"
             targetdir ".build/bin/debug"
+            debugdir ".build/bin/debug"
         configuration "Release"
             targetdir ".build/bin/release"
+            debugdir ".build/bin/release"
         
     project "DuckGfx"
         kind "StaticLib"
         files {"DuckGfx/src/*.*", "DuckGfx/include/*.*", "DuckGfx/shaders/pixel/*.*", "DuckGfx/shaders/vertex/*.*"}
         includedirs {"Core/include", "DuckGfx/include"}
+        flags {"Symbols"}
 
         configuration "Debug"
             targetdir ".build/bin/debug"
+            debugdir ".build/bin/debug"
         configuration "Release"
             targetdir ".build/bin/release"
+            debugdir ".build/bin/release"
         
      project "Core"
         kind "StaticLib"
         files {"Core/src/*.*", "Core/include/*.*"}
         includedirs {"Core/include"}
+        flags {"Symbols"}
         
         configuration "Debug"
             targetdir ".build/bin/debug"
+            debugdir ".build/bin/debug"
         configuration "Release"
             targetdir ".build/bin/release"
+            debugdir ".build/bin/release"
