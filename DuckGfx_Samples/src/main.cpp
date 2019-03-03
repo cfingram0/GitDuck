@@ -3,7 +3,6 @@
 #include "DuckGfx.h"
 
 
-
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -33,8 +32,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
   // Perform application initialization:
   HWND windowHandle;
-  if (!InitInstance(hInstance, nCmdShow, &windowHandle))
-  {
+  if (!InitInstance(hInstance, nCmdShow, &windowHandle)) {
     DWORD err = GetLastError();
 
     return FALSE;
