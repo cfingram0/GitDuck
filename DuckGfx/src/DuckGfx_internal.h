@@ -16,6 +16,9 @@ namespace duckGfx {
     ID3D11Device * pDevice = nullptr;
     ID3D11DeviceContext * pImmediateContext = nullptr;
     ID3D11RenderTargetView * pBackBufferRenderTargetView = nullptr;
+    ID3D11Texture2D * depthBufferTex = NULL;
+    ID3D11DepthStencilView * depthStencilView = NULL;
+
 
     ID3D11Buffer * vertBuffer = nullptr;
     ID3D11Buffer * idxBuffer = nullptr;

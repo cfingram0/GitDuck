@@ -1,6 +1,8 @@
 #include "DuckGfx.h"
 #include "DuckGfx_internal.h"
 
+#define DEBUG_DX
+
 namespace duckGfx {
   DuckContext globalContext;
 
@@ -47,11 +49,14 @@ namespace duckGfx {
     uint32_t numLevelsRequested = 1;
     D3D_FEATURE_LEVEL featureLevelsSupported;
     
-
     HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL,
       D3D_DRIVER_TYPE_HARDWARE,
       NULL,
-      0,
+#ifdef DEBUG_DX
+      D3D11_CREATE_DEVICE_DEBUG,
+#else
+      NULL,
+#endif
       &featureLevelsRequested,
       numLevelsRequested,
       D3D11_SDK_VERSION,
@@ -73,11 +78,25 @@ namespace duckGfx {
     }
 
     //create the render target view
-   
     hr = globalContext.pDevice->CreateRenderTargetView(pBackBuffer, NULL, &globalContext.pBackBufferRenderTargetView);
+    pBackBuffer->Release();
 
-    //bind the view
-    globalContext.pImmediateContext->OMSetRenderTargets(1, &globalContext.pBackBufferRenderTargetView, NULL);
+    //create the stencil depth buffer
+    D3D11_TEXTURE2D_DESC stencilDepthDesc;
+    stencilDepthDesc.Width = 1600;
+    stencilDepthDesc.Height = 900;
+    stencilDepthDesc.MipLevels = 1;
+    stencilDepthDesc.ArraySize = 1;
+    stencilDepthDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    stencilDepthDesc.SampleDesc.Count = 1;
+    stencilDepthDesc.SampleDesc.Quality = 0;
+    stencilDepthDesc.Usage = D3D11_USAGE_DEFAULT;
+    stencilDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    stencilDepthDesc.CPUAccessFlags = 0;
+    stencilDepthDesc.MiscFlags = NULL;
+  
+    globalContext.pDevice->CreateTexture2D(&stencilDepthDesc, NULL, &globalContext.depthBufferTex);
+    globalContext.pDevice->CreateDepthStencilView(globalContext.depthBufferTex, NULL, &globalContext.depthStencilView);
 
     // release intermediate objects
     for (size_t i = 0; i < adaptorArray.size(); ++i) {
@@ -86,9 +105,9 @@ namespace duckGfx {
     pFactory->Release();
 
     // generate buffer for hello world triangle
-    testVert verts[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), 
-                         Vec3(0.5f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f), 
-                         Vec3(0.5f, 0.5f, 0.0f), Vec3(0.0f, 0.0f, 1.0f)};
+    testVert verts[] = { Vec3(-0.5f, 0.0f, 0.5f), Vec3(1.0f, 0.0f, 0.0f), 
+                         Vec3(0.5f, 0.0f,  0.5f), Vec3(0.0f, 1.0f, 0.0f), 
+                         Vec3(0.5f, 0.5f,  0.5f), Vec3(0.0f, 0.0f, 1.0f)};
 
     D3D11_BUFFER_DESC desc;
     desc.Usage = D3D11_USAGE_DEFAULT;
@@ -173,7 +192,7 @@ namespace duckGfx {
     rastDesc.DepthBias = 0;
     rastDesc.DepthBiasClamp = 0;
     rastDesc.SlopeScaledDepthBias = 0;
-    rastDesc.DepthClipEnable = 0;
+    rastDesc.DepthClipEnable = TRUE;
     rastDesc.ScissorEnable = false;
     rastDesc.MultisampleEnable = false;
     rastDesc.AntialiasedLineEnable = false;
@@ -185,7 +204,9 @@ namespace duckGfx {
     D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
     ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
 
-    depthStencilDesc.DepthEnable = false;
+    depthStencilDesc.DepthEnable = true;
+    depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     depthStencilDesc.StencilEnable = false;
 
     ID3D11DepthStencilState * depthStencilState;
@@ -196,10 +217,15 @@ namespace duckGfx {
   }
   
   void Render() {
+    //bind the backbuffer view
+    globalContext.pImmediateContext->OMSetRenderTargets(1, &globalContext.pBackBufferRenderTargetView, globalContext.depthStencilView);
+
     static int counter = 0;
     // clear the back buffer, alternate colors so we know the back buffer is being cleared
     float color[4] = { 0.0f, 0.2f, 0.6f, 0.0f };
     float color2[4] = { 0.0f, 0.5f, 0.4f, 0.0f };
+
+    globalContext.pImmediateContext->ClearDepthStencilView(globalContext.depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     if (counter / 60 == 1) {
       globalContext.pImmediateContext->ClearRenderTargetView(globalContext.pBackBufferRenderTargetView, color2);
       if (counter == 119) {
@@ -247,5 +273,15 @@ namespace duckGfx {
     globalContext.pImmediateContext->Release();
     globalContext.pDevice->Release();
     globalContext.pSwapChain->Release();
+    globalContext.depthBufferTex->Release();
+    globalContext.depthStencilView->Release();
+
+    globalContext.vertBuffer->Release();
+    globalContext.idxBuffer->Release();
+    globalContext.inputLayout->Release();
+    globalContext.vertShader->Release();
+    globalContext.pixelShader->Release();
+    globalContext.rasterizorState->Release();
+    globalContext.depthStencilState->Release();
   }
 }
