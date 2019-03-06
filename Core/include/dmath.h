@@ -1,12 +1,7 @@
 #pragma once
 constexpr float kEpsilon = 0.0001f;
 
-bool FloatIsEqual(float a, float b, float epsilon = kEpsilon) {
-  float diff = a - b;
-  diff = diff < 0 ? -diff : diff;
-  return diff < epsilon;
-}
-
+bool FloatIsEqual(float a, float b, float epsilon = kEpsilon);
 namespace tag {
   struct NoInit {};
   struct Identity {};
@@ -214,6 +209,8 @@ public:
   Matrix4 operator-(const Matrix4& rhs) const;
   Matrix4 operator*(const Matrix4& rhs) const;
 
+  Vec4 operator*(const Vec4& rhs) const;
+
   Matrix4& operator+=(const Matrix4& rhs);
   Matrix4& operator-=(const Matrix4& rhs);
   Matrix4& operator*=(const Matrix4& rhs);
@@ -228,10 +225,10 @@ public:
   static Matrix4 BuildXaxisRotation(float theta);
   static Matrix4 BuildYaxisRotation(float theta);
   static Matrix4 BuildZaxisRotation(float theta);
-  static Matrix4 BuildTranslationMatrix(Vec4 trans);
-  static Matrix4 BuildScaleMatrix(Vec4 Scale);
+  static Matrix4 BuildTranslationMatrix(Vec3 trans);
+  static Matrix4 BuildScaleMatrix(Vec3 Scale);
 
-  static Matrix4 BuildRotationAboutArbitraryAxis(Vec4 axis, float angle);
+  static Matrix4 BuildRotationAboutArbitraryAxis(Vec3 axis, float angle);
   static Matrix4 BuildCrossMatrix(Vec4 Vec);
 
   static Matrix4 TensorProduct(const Vec4& arg1, const Vec4& arg2);
@@ -243,6 +240,8 @@ public:
   Matrix4 Inverse(void);
 
   Matrix4& MakePerspFOV(float fov, float AspectRatio, float near, float far);
+
+  static Matrix4 BuildPerspProj(float wFov, float aspectRatio, float near, float far);
 };
 
 float Dot(const Vec2 & a, const Vec2 & b);

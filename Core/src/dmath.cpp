@@ -4,6 +4,12 @@
 #include <inttypes.h>
 
 
+bool FloatIsEqual(float a, float b, float epsilon) {
+  float diff = a - b;
+  diff = diff < 0 ? -diff : diff;
+  return diff < epsilon;
+}
+
 Vec2 Vec2::operator+ (const Vec2 & rhs) const {
   return Vec2(x + rhs.x, y + rhs.y);
 }
@@ -302,7 +308,8 @@ Quaternion Quaternion::SLerp(const Quaternion& Source, const Quaternion& Dest, f
 
   float Left = std::sin(alpha - t * alpha) / sin(alpha);
   float Right = std::sin(alpha * t) / std::sin(alpha);
-  return (Source.GetNormalized() * Left + Dest.GetNormalized() * Right).GetNormalized();
+  
+  return Normalize(Normalize(Source) * Left + Normalize(Dest) * Right);
 
 }
 
@@ -438,6 +445,13 @@ Matrix4 Matrix4::operator*(const Matrix4& rhs) const
 
 }
 
+Vec4 Matrix4::operator*(const Vec4& rhs) const {
+  return Vec4(m00 * rhs.x + m01 * rhs.y + m02 * rhs.z + m03 * rhs.w,
+              m10 * rhs.x + m11 * rhs.y + m12 * rhs.z + m13 * rhs.w, 
+              m20 * rhs.x + m21 * rhs.y + m22 * rhs.z + m23 * rhs.w, 
+              m30 * rhs.x + m31 * rhs.y + m32 * rhs.z + m33 * rhs.w);
+}
+
 // Similar to the three above except they modify
 // the original 
 Matrix4& Matrix4::operator+=(const Matrix4& rhs)
@@ -517,7 +531,7 @@ Matrix4 Matrix4::BuildZaxisRotation(float alpha)
   return toReturn;
 }
 
-Matrix4 Matrix4::BuildTranslationMatrix(Vec4 trans)
+Matrix4 Matrix4::BuildTranslationMatrix(Vec3 trans)
 {
   Matrix4 toReturn(tag::Identity{});
   toReturn.m03 = trans.x;
@@ -527,7 +541,7 @@ Matrix4 Matrix4::BuildTranslationMatrix(Vec4 trans)
   return toReturn;
 }
 
-Matrix4 Matrix4::BuildScaleMatrix(Vec4 Scale)
+Matrix4 Matrix4::BuildScaleMatrix(Vec3 Scale)
 {
   Matrix4 toReturn(tag::Zero{});
   toReturn.m00 = Scale.x;
@@ -537,11 +551,11 @@ Matrix4 Matrix4::BuildScaleMatrix(Vec4 Scale)
   return toReturn;
 }
 
-Matrix4 Matrix4::BuildRotationAboutArbitraryAxis(Vec4 axis, float angle)
+Matrix4 Matrix4::BuildRotationAboutArbitraryAxis(Vec3 axis, float angle)
 {
   Matrix4 toReturn(tag::Identity{});
 
-  Vec4 theaxis = axis;
+  Vec4 theaxis = Vec4(axis.x, axis.y, axis.z, 0);
   if (LengthSq(theaxis) == 0)
   {
     return toReturn;
@@ -710,4 +724,39 @@ Matrix4& Matrix4::MakePerspFOV(float fov, float AspectRatio, float nearz, float 
 
   return *this;
 
+}
+
+//float m00; float m01; float m02; float m03;
+//float m10; float m11; float m12; float m13;
+//float m20; float m21; float m22; float m23;
+//float m30; float m31; float m32; float m33;
+
+Matrix4 Matrix4::BuildPerspProj(float wFov, float aspectRatio, float near, float far) {
+  Matrix4 toReturn(tag::Zero{});
+
+  //float tanFov = std::tan(wFov / 2);
+  //float width = tanFov * 2 * near;
+  //float height = width / aspectRatio;
+  //
+  ////take positive values and position them on the negative z
+  //near = -near;
+  //far = -far;
+  //
+  //toReturn.m00 = (2 * near) / width;
+  //toReturn.m11 = (2 * near) / height;
+  //toReturn.m22 = (far + near) / (far - near);
+  //toReturn.m23 = (-2 * far * near) / (far - near);
+  //toReturn.m32 = 1;
+
+  float tangent = std::tan(wFov / 2);
+  float cot = 1 / tangent;
+  //rowxcolumn
+
+  toReturn.m00 = cot / aspectRatio;
+  toReturn.m11 = cot;
+  toReturn.m22 = (-near - far) / (near - far);
+  toReturn.m32 = 1;
+  toReturn.m23 = (2 * near * far) / (near - far);
+
+  return toReturn;
 }

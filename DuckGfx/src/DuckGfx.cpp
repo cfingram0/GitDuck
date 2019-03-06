@@ -105,9 +105,9 @@ namespace duckGfx {
     pFactory->Release();
 
     // generate buffer for hello world triangle
-    testVert verts[] = { Vec3(-0.5f, 0.0f, 0.5f), Vec3(1.0f, 0.0f, 0.0f), 
-                         Vec3(0.5f, 0.0f,  0.5f), Vec3(0.0f, 1.0f, 0.0f), 
-                         Vec3(0.5f, 0.5f,  0.5f), Vec3(0.0f, 0.0f, 1.0f)};
+    testVert verts[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), 
+                         Vec3(0.5f, 0.0f,  0.0f), Vec3(0.0f, 1.0f, 0.0f), 
+                         Vec3(0.5f, 0.5f,  0.0f), Vec3(0.0f, 0.0f, 1.0f)};
 
     D3D11_BUFFER_DESC desc;
     desc.Usage = D3D11_USAGE_DEFAULT;
@@ -213,6 +213,22 @@ namespace duckGfx {
     globalContext.pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilState);
     globalContext.depthStencilState = depthStencilState;
 
+
+    ID3D11Buffer * constantBuffer = NULL;
+    D3D11_BUFFER_DESC cbDesc;
+    cbDesc.ByteWidth = sizeof(testConstantBuffer);
+    cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+    cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    cbDesc.MiscFlags = 0;
+    cbDesc.StructureByteStride = 0;
+
+    hr = globalContext.pDevice->CreateBuffer(&cbDesc, NULL, &constantBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+    globalContext.constantBuffer = constantBuffer;
+
     return true;
   }
   
@@ -259,6 +275,22 @@ namespace duckGfx {
     globalContext.pImmediateContext->RSSetState(globalContext.rasterizorState);
     globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.depthStencilState, 0);
 
+
+
+    Matrix4 mymatrix(tag::Identity{});
+    Matrix4 world = Matrix4::BuildTranslationMatrix(Vec3(0, 3, -5)) * Matrix4::BuildZaxisRotation((45.0 * 3.14f) / 180.0f) * Matrix4::BuildScaleMatrix(Vec3(1,1,1));
+    Matrix4 camera = Matrix4(tag::Identity{});
+    Matrix4 proj = Matrix4::BuildPerspProj((90.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 1.0f, 10);
+    mymatrix = proj * Matrix4::BuildScaleMatrix(Vec3(1, 1, -1)) * world;
+
+    D3D11_MAPPED_SUBRESOURCE subresource;
+    ZeroMemory(&subresource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+    globalContext.pImmediateContext->Map(globalContext.constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
+    memcpy(subresource.pData, &mymatrix.v[0], sizeof(Matrix4));
+    globalContext.pImmediateContext->Unmap(globalContext.constantBuffer, 0);
+
+    globalContext.pImmediateContext->VSSetConstantBuffers(0, 1, &globalContext.constantBuffer);
+
     globalContext.pImmediateContext->DrawIndexed(3, 0, 0);
 
 
@@ -283,5 +315,6 @@ namespace duckGfx {
     globalContext.pixelShader->Release();
     globalContext.rasterizorState->Release();
     globalContext.depthStencilState->Release();
+    globalContext.constantBuffer->Release();
   }
 }

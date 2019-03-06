@@ -27,6 +27,7 @@ namespace duckGfx {
     ID3D11PixelShader * pixelShader = nullptr;
     ID3D11RasterizerState * rasterizorState = nullptr;
     ID3D11DepthStencilState * depthStencilState = nullptr;
+    ID3D11Buffer * constantBuffer = nullptr;
   };
 
   extern DuckContext globalContext;
@@ -35,4 +36,9 @@ namespace duckGfx {
     Vec3 position;
     Vec3 color;
   };
+
+  struct testConstantBuffer {
+    Matrix4 matrix{ tag::Identity{} };
+  };
+
 }
