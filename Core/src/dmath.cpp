@@ -157,9 +157,13 @@ Vec4 & Vec4::operator/= (float rhs) {
 }
 
 
-Quaternion::Quaternion(float RadAngle, const Vec4& Axis) {
+Quaternion::Quaternion(float RadAngle, const Vec4& Axis)
+: Quaternion(RadAngle, Vec3(Axis.x, Axis.y, Axis.z)){
+}
+
+Quaternion::Quaternion(float RadAngle, const Vec3& Axis) {
   s = std::cos(RadAngle / 2.0f);
-  Vec4 axis = Normalize(Axis);
+  Vec3 axis = Normalize(Axis);
 
   axis *= std::sin(RadAngle / 2.0f);
 
@@ -167,6 +171,7 @@ Quaternion::Quaternion(float RadAngle, const Vec4& Axis) {
   y = axis.y;
   z = axis.z;
 }
+
 Quaternion::Quaternion(float S, float X, float Y, float Z)
   :s(S), x(X), y(Y), z(Z)
 {}
@@ -270,7 +275,7 @@ Vec4 Quaternion::RotateVec(const Vec4& rhs) const {
   return Vec4(Res.x, Res.y, Res.z, 0);
 }
 
-Matrix4 Quaternion::ToMatrix(void)
+Matrix4 Quaternion::CalcMatrix(void) const
 {
   return Matrix4(1 - 2 * (y * y + z * z),     2 * (x * y - s * z),     2 * (x * z + s * y), 0,
                      2 * (x * y + s * z), 1 - 2 * (x * x + z * z),     2 * (y * z - s * x), 0,
@@ -678,7 +683,7 @@ Matrix4 Matrix4::GetTranspose()
   return newMat;
 }
 
-Matrix4 Matrix4::Inverse(void)
+Matrix4 Matrix4::Inverse(void) const
 {
   Matrix4 Inverse(tag::Identity{});
 
@@ -759,4 +764,72 @@ Matrix4 Matrix4::BuildPerspProj(float wFov, float aspectRatio, float near, float
   toReturn.m23 = (2 * near * far) / (near - far);
 
   return toReturn;
+}
+
+
+TransformRT::TransformRT(tag::NoInit)
+  :rotation(tag::NoInit{}), translation(tag::NoInit{}){}
+
+TransformRT::TransformRT(tag::Identity) 
+  : rotation(tag::Identity{}), translation(tag::Zero{}) {}
+
+TransformRT::TransformRT(const Quaternion & r, Vec3 t)
+  : rotation(r), translation(t) {}
+
+TransformRT::TransformRT(const TransformRT & rhs) 
+  : rotation(rhs.rotation), translation(rhs.translation) {}
+
+TransformRT & TransformRT::operator=(const TransformRT & rhs) {
+  rotation = rhs.rotation;
+  translation = rhs.translation;
+  return *this;
+}
+
+Matrix4 TransformRT::CalcMatrix() const {
+  return Matrix4::BuildTranslationMatrix(translation) * rotation.CalcMatrix();
+}
+
+Matrix4 TransformRT::CalcInvMatrix() const {
+  Quaternion invRot = rotation.Inverse();
+  return invRot.CalcMatrix() * Matrix4::BuildTranslationMatrix(-translation);
+}
+
+TransformSRT::TransformSRT(tag::NoInit) :
+  scale(tag::NoInit{}), rotation(tag::NoInit{}), translation(tag::NoInit{}) 
+{}
+
+TransformSRT::TransformSRT(tag::Identity) 
+  : scale(1, 1, 1), rotation(tag::Identity{}), translation(tag::Zero{}) 
+{}
+
+TransformSRT::TransformSRT(Vec3 s, const Quaternion & r, Vec3 t)
+  : scale(s), rotation(r), translation(t)
+{}
+
+TransformSRT::TransformSRT(Vec3 s, const TransformRT & rt)
+  : scale(s), rotation(rt.rotation), translation(rt.translation)
+{}
+
+TransformSRT::TransformSRT(const TransformSRT & rhs) 
+  : scale(rhs.scale), rotation(rhs.rotation), translation(rhs.translation)
+{}
+
+TransformSRT & TransformSRT::operator=(const TransformSRT & rhs) {
+  scale = rhs.scale;
+  rotation = rhs.rotation;
+  translation = rhs.translation;
+  return *this;
+}
+
+Matrix4 TransformSRT::CalcMatrix() const {
+  return Matrix4::BuildTranslationMatrix(translation) 
+         * rotation.CalcMatrix() 
+         * Matrix4::BuildScaleMatrix(scale);
+}
+
+Matrix4 TransformSRT::CalcInvMatrix() const {
+  Quaternion invRot = rotation.Inverse();
+  return Matrix4::BuildScaleMatrix(Vec3(1 / scale.x, 1 / scale.y, 1 / scale.z))
+         * invRot.CalcMatrix()
+         * Matrix4::BuildTranslationMatrix(-translation);
 }

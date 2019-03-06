@@ -278,10 +278,13 @@ namespace duckGfx {
 
 
     Matrix4 mymatrix(tag::Identity{});
-    Matrix4 world = Matrix4::BuildTranslationMatrix(Vec3(0, 3, -5)) * Matrix4::BuildZaxisRotation((45.0 * 3.14f) / 180.0f) * Matrix4::BuildScaleMatrix(Vec3(1,1,1));
-    Matrix4 camera = Matrix4(tag::Identity{});
+    TransformSRT worldT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
+    Matrix4 world = worldT.CalcMatrix();
+
+    TransformRT cameraT(Quaternion((00.0f * 3.14f) / 180.0f, Vec3(0, 1, 0)), Vec3(0, 2, 0));
+    Matrix4 camera = cameraT.CalcInvMatrix();
     Matrix4 proj = Matrix4::BuildPerspProj((90.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 1.0f, 10);
-    mymatrix = proj * Matrix4::BuildScaleMatrix(Vec3(1, 1, -1)) * world;
+    mymatrix = proj * Matrix4::BuildScaleMatrix(Vec3(1, 1, -1)) * camera * world;
 
     D3D11_MAPPED_SUBRESOURCE subresource;
     ZeroMemory(&subresource, sizeof(D3D11_MAPPED_SUBRESOURCE));
