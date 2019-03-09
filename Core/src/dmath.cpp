@@ -259,8 +259,9 @@ Quaternion& Quaternion::operator/= (float rhs) {
 }
 
 Quaternion Quaternion::Inverse(void) const {
-  Quaternion Conj = GetConjugate();
-  return Conj / LengthSq(Conj);
+  Quaternion conj = GetConjugate();
+  float lenSq = LengthSq(conj);
+  return lenSq == 0 ? conj : conj / lenSq;
 }
 
 Quaternion Quaternion::GetConjugate(void) const {

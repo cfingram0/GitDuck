@@ -10,6 +10,20 @@
 #include "io.h"
 
 namespace duckGfx {
+  class Camera {
+  public:
+    TransformRT m_transform{ tag::Identity{} };
+    Matrix4 m_proj{ tag::NoInit{} };
+    Matrix4 m_viewProj{ tag::NoInit{} };
+    float m_wFov;
+    float m_AspectRatio;
+    float m_near;
+    float m_far;
+
+    void RefreshProjMatrix();
+    void RefreshProjView();
+  };
+
 
   struct DuckContext {
     IDXGISwapChain * pSwapChain = nullptr;
@@ -19,6 +33,7 @@ namespace duckGfx {
     ID3D11Texture2D * depthBufferTex = NULL;
     ID3D11DepthStencilView * depthStencilView = NULL;
 
+    Camera * camera = nullptr;
 
     ID3D11Buffer * vertBuffer = nullptr;
     ID3D11Buffer * idxBuffer = nullptr;
@@ -40,5 +55,6 @@ namespace duckGfx {
   struct testConstantBuffer {
     Matrix4 matrix{ tag::Identity{} };
   };
+
 
 }

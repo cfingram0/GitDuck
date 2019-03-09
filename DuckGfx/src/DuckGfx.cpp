@@ -229,11 +229,25 @@ namespace duckGfx {
     }
     globalContext.constantBuffer = constantBuffer;
 
+
+    // set up the camera
+    globalContext.camera = new Camera();
+    globalContext.camera->m_AspectRatio = 16.0f / 9.0f;
+    globalContext.camera->m_near = 1.0f;
+    globalContext.camera->m_far = 10.0f;
+    globalContext.camera->m_wFov = (90.0f * 3.14f) / 180.0f;
+    globalContext.camera->m_transform.translation = Vec3(0, 2, 0);
+    globalContext.camera->RefreshProjMatrix();
+
+
     return true;
   }
   
   void Render() {
-    //bind the backbuffer view
+    
+
+
+    // pass 1 : clear back buffer
     globalContext.pImmediateContext->OMSetRenderTargets(1, &globalContext.pBackBufferRenderTargetView, globalContext.depthStencilView);
 
     static int counter = 0;
@@ -252,7 +266,11 @@ namespace duckGfx {
       globalContext.pImmediateContext->ClearRenderTargetView(globalContext.pBackBufferRenderTargetView, color);
     }
 
-    // set our default viewport
+
+
+    // pass 2 : render to back buffer
+    globalContext.pImmediateContext->OMSetRenderTargets(1, &globalContext.pBackBufferRenderTargetView, globalContext.depthStencilView);
+
     D3D11_VIEWPORT viewport;
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
@@ -261,37 +279,39 @@ namespace duckGfx {
     viewport.MinDepth = 0;
     viewport.MaxDepth = 1;
     globalContext.pImmediateContext->RSSetViewports(1, &viewport);
+    
+    // pass data
+    globalContext.pImmediateContext->RSSetState(globalContext.rasterizorState);
+    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.depthStencilState, 0);
+    globalContext.camera->RefreshProjView();
 
 
     // hey look, the place where real rendering happens
     uint32_t stride = sizeof(testVert);
     uint32_t offset = 0;
+
+    // mesh data
     globalContext.pImmediateContext->IASetVertexBuffers(0, 1, &globalContext.vertBuffer, &stride, &offset);
     globalContext.pImmediateContext->IASetIndexBuffer(globalContext.idxBuffer, DXGI_FORMAT::DXGI_FORMAT_R32_UINT, 0);
     globalContext.pImmediateContext->IASetInputLayout(globalContext.inputLayout);
+    globalContext.pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+    // material data
     globalContext.pImmediateContext->VSSetShader(globalContext.vertShader, nullptr, 0);
     globalContext.pImmediateContext->PSSetShader(globalContext.pixelShader, nullptr, 0);
-    globalContext.pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    globalContext.pImmediateContext->RSSetState(globalContext.rasterizorState);
-    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.depthStencilState, 0);
-
-
 
     Matrix4 mymatrix(tag::Identity{});
     TransformSRT worldT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
     Matrix4 world = worldT.CalcMatrix();
 
-    TransformRT cameraT(Quaternion((00.0f * 3.14f) / 180.0f, Vec3(0, 1, 0)), Vec3(0, 2, 0));
-    Matrix4 camera = cameraT.CalcInvMatrix();
-    Matrix4 proj = Matrix4::BuildPerspProj((90.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 1.0f, 10);
-    mymatrix = proj * Matrix4::BuildScaleMatrix(Vec3(1, 1, -1)) * camera * world;
+    mymatrix = globalContext.camera->m_viewProj * world;
 
     D3D11_MAPPED_SUBRESOURCE subresource;
     ZeroMemory(&subresource, sizeof(D3D11_MAPPED_SUBRESOURCE));
     globalContext.pImmediateContext->Map(globalContext.constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
     memcpy(subresource.pData, &mymatrix.v[0], sizeof(Matrix4));
     globalContext.pImmediateContext->Unmap(globalContext.constantBuffer, 0);
-
     globalContext.pImmediateContext->VSSetConstantBuffers(0, 1, &globalContext.constantBuffer);
 
     globalContext.pImmediateContext->DrawIndexed(3, 0, 0);
@@ -310,6 +330,10 @@ namespace duckGfx {
     globalContext.pSwapChain->Release();
     globalContext.depthBufferTex->Release();
     globalContext.depthStencilView->Release();
+
+
+    delete globalContext.camera;
+    globalContext.camera = nullptr;
 
     globalContext.vertBuffer->Release();
     globalContext.idxBuffer->Release();
