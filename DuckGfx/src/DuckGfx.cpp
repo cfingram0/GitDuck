@@ -22,6 +22,17 @@ namespace duckGfx {
     context->OMSetRenderTargets(rt.m_numColorTargets, rt.m_colorViews, rt.m_depthStencilView);
   }
 
+  void BindMesh(ID3D11DeviceContext * context, const Mesh & mesh) {
+    // hey look, the place where real rendering happens
+    uint32_t stride = mesh.vertSize;
+    uint32_t offset = 0;
+
+    // mesh data
+    context->IASetVertexBuffers(0, 1, &mesh.vertBuffer, &stride, &offset);
+    context->IASetIndexBuffer(mesh.idxBuffer, DXGI_FORMAT::DXGI_FORMAT_R32_UINT, 0);
+    context->IASetPrimitiveTopology(mesh.topology);
+  }
+
   static bool CreateBackBufferRT(IDXGISwapChain * swapChain, RenderTarget2D * output) {
     //get the back buffer, create a render target view, bind the view
     HRESULT hr = globalContext.pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&output->m_colorTargets[0]);
@@ -146,6 +157,124 @@ namespace duckGfx {
     }
   }
 
+  static uint32_t VertSize(const VertexFormat & fmt) {
+    uint32_t sizeAccum = 0;
+    if (fmt.hasPosition) {
+      sizeAccum += sizeof(Vec3);
+    }
+    if (fmt.hasNormals) {
+      sizeAccum += sizeof(Vec3);
+    }
+    if (fmt.hasTangentFrame) {
+      sizeAccum += 2 * sizeof(Vec3);
+    }
+    if (fmt.hasBlendWeightsAndIndices) {
+      sizeAccum += 4 * (sizeof(float) + sizeof(uint32_t));
+    }
+    if (fmt.numUVsets) {
+      sizeAccum += fmt.numUVsets * sizeof(Vec2);
+    }
+    if (fmt.numColorSets) {
+      sizeAccum += fmt.numColorSets * sizeof(Vec4);
+    }
+    return sizeAccum;
+  }
+
+
+
+  static bool CreateVertLayout(ID3D11Device * device, const VertexFormat & fmt, void * shaderByteCode, size_t shaderbyteCodeLength, ID3D11InputLayout ** outLayout) {
+    std::vector<D3D11_INPUT_ELEMENT_DESC> layout;
+
+    if (fmt.hasPosition) {
+      D3D11_INPUT_ELEMENT_DESC posLayout = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0};
+      layout.push_back(posLayout);
+    }
+    if (fmt.hasNormals) {
+      D3D11_INPUT_ELEMENT_DESC normalLayout = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      layout.push_back(normalLayout);
+    }
+    if (fmt.hasTangentFrame) {
+      D3D11_INPUT_ELEMENT_DESC tanFrameLayout[] = { { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
+                                                    { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }};
+      layout.push_back(tanFrameLayout[0]);
+      layout.push_back(tanFrameLayout[1]);
+    }
+    if (fmt.hasBlendWeightsAndIndices) {
+      // need to thank about this one, just assert fail for now
+      assert(false); // not implemented
+    }
+    for (uint32_t i = 0; i < fmt.numUVsets; ++i) {
+      D3D11_INPUT_ELEMENT_DESC texLayout = { "TEXCOORD", i, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      layout.push_back(texLayout);
+    }
+    for (uint32_t i = 0; i < fmt.numUVsets; ++i) {
+      D3D11_INPUT_ELEMENT_DESC colorLayout = { "COLOR", i, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+      layout.push_back(colorLayout);
+    }
+
+    device->CreateInputLayout(&layout[0], UINT(layout.size()), shaderByteCode, shaderbyteCodeLength, outLayout);
+  }
+
+  static bool GenerateDebugTriangle(Mesh* output) {
+    output->format.hasPosition = 1;
+    output->format.numColorSets = 1;
+
+    // generate buffer for hello world triangle
+    struct { 
+      Vec3 pos; 
+      Vec4 color; 
+    } vertData[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec4(1.0f, 0.0f, 0.0f, 1),
+                     Vec3(0.5f, 0.0f,  0.0f), Vec4(0.0f, 1.0f, 0.0f, 1.0f),
+                     Vec3(0.5f, 0.5f,  0.0f), Vec4(0.0f, 0.0f, 1.0f, 1.0f)};
+
+    const uint32_t numVerts = 3;
+    const uint32_t vertSize = VertSize(output->format);
+    output->vertSize = vertSize;
+
+    D3D11_BUFFER_DESC desc;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.ByteWidth = vertSize * numVerts;
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags = 0;
+    desc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData;
+    initData.pSysMem = vertData;
+    initData.SysMemPitch = 0;
+    initData.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * vertBuffer;
+    HRESULT hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &vertBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+    output->vertBuffer = vertBuffer;
+
+    uint32_t indices[] = { 0, 1, 2 };
+    D3D11_BUFFER_DESC desc_idx;
+    desc_idx.Usage = D3D11_USAGE_DEFAULT;
+    desc_idx.ByteWidth = sizeof(uint32_t) * 3;
+    desc_idx.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    desc_idx.CPUAccessFlags = 0;
+    desc_idx.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData_idx;
+    initData_idx.pSysMem = indices;
+    initData_idx.SysMemPitch = 0;
+    initData_idx.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * idxBuffer;
+    hr = globalContext.pDevice->CreateBuffer(&desc_idx, &initData_idx, &idxBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+
+    output->idxBuffer = idxBuffer;
+    output->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    return true;
+  }
+
+
   bool Init(HWND windowHandle) {
     IDXGIAdapter1 * chosenAdaptor = nullptr;
     if (!PickAdaptor(&chosenAdaptor)) {
@@ -163,46 +292,12 @@ namespace duckGfx {
       return false;
     }
 
-    // generate buffer for hello world triangle
-    testVert verts[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), 
-                         Vec3(0.5f, 0.0f,  0.0f), Vec3(0.0f, 1.0f, 0.0f), 
-                         Vec3(0.5f, 0.5f,  0.0f), Vec3(0.0f, 0.0f, 1.0f)};
+    Mesh * newMesh = new Mesh();
+    GenerateDebugTriangle(newMesh);
+    globalContext.testTriangle = new Model();
+    globalContext.testTriangle->m_theMesh = newMesh;
+    globalContext.testTriangle->m_transform = TransformSRT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
 
-    D3D11_BUFFER_DESC desc;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.ByteWidth = sizeof(testVert) * 3;
-    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    desc.CPUAccessFlags = 0;
-    desc.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA initData;
-    initData.pSysMem = verts;
-    initData.SysMemPitch = 0;
-    initData.SysMemSlicePitch = 0;
-
-    ID3D11Buffer * vertBuffer;
-    HRESULT hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &vertBuffer);
-    if (FAILED(hr)) {
-      return false;
-    }
-    globalContext.vertBuffer = vertBuffer;
-
-    uint32_t indices[] = {0, 1, 2};
-    D3D11_BUFFER_DESC desc_idx;
-    desc_idx.Usage = D3D11_USAGE_DEFAULT;
-    desc_idx.ByteWidth = sizeof(uint32_t) * 3;
-    desc_idx.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    desc_idx.CPUAccessFlags = 0;
-    desc_idx.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA initData_idx;
-    initData_idx.pSysMem = indices;
-    initData_idx.SysMemPitch = 0;
-    initData_idx.SysMemSlicePitch = 0;
-
-    ID3D11Buffer * idxBuffer;
-    hr = globalContext.pDevice->CreateBuffer(&desc_idx, &initData_idx, &idxBuffer);
-    globalContext.idxBuffer = idxBuffer;
 
     // load the shaders
     std::vector<uint8_t> bytes;
@@ -224,7 +319,7 @@ namespace duckGfx {
       { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
       { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
-    hr = globalContext.pDevice->CreateInputLayout(layout, 2, bytes.data(), bytes.size(), &pLayout);
+    HRESULT hr = globalContext.pDevice->CreateInputLayout(layout, 2, bytes.data(), bytes.size(), &pLayout);
     if (FAILED(hr)) {
       return false;
     }
@@ -301,8 +396,6 @@ namespace duckGfx {
   
   void Render() {
     
-
-
     // pass 1 : clear back buffer
     RenderTarget2D * backBuffer = globalContext.pBackBufferRt;
     BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
@@ -341,27 +434,18 @@ namespace duckGfx {
     globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.depthStencilState, 0);
     globalContext.camera->RefreshProjView();
 
-
-    // hey look, the place where real rendering happens
-    uint32_t stride = sizeof(testVert);
-    uint32_t offset = 0;
-
-    // mesh data
-    globalContext.pImmediateContext->IASetVertexBuffers(0, 1, &globalContext.vertBuffer, &stride, &offset);
-    globalContext.pImmediateContext->IASetIndexBuffer(globalContext.idxBuffer, DXGI_FORMAT::DXGI_FORMAT_R32_UINT, 0);
-    globalContext.pImmediateContext->IASetInputLayout(globalContext.inputLayout);
-    globalContext.pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
+    BindMesh(globalContext.pImmediateContext, *globalContext.testTriangle->m_theMesh);
 
     // material data
     globalContext.pImmediateContext->VSSetShader(globalContext.vertShader, nullptr, 0);
     globalContext.pImmediateContext->PSSetShader(globalContext.pixelShader, nullptr, 0);
+    globalContext.pImmediateContext->IASetInputLayout(globalContext.inputLayout);
 
     Matrix4 mymatrix(tag::Identity{});
     TransformSRT worldT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
     Matrix4 world = worldT.CalcMatrix();
 
-    mymatrix = globalContext.camera->m_viewProj * world;
+    mymatrix = globalContext.camera->m_viewProj * globalContext.testTriangle->m_transform.CalcMatrix();
 
     D3D11_MAPPED_SUBRESOURCE subresource;
     ZeroMemory(&subresource, sizeof(D3D11_MAPPED_SUBRESOURCE));
@@ -390,8 +474,9 @@ namespace duckGfx {
     delete globalContext.camera;
     globalContext.camera = nullptr;
 
-    globalContext.vertBuffer->Release();
-    globalContext.idxBuffer->Release();
+    delete globalContext.testTriangle;
+    globalContext.testTriangle = nullptr;
+
     globalContext.inputLayout->Release();
     globalContext.vertShader->Release();
     globalContext.pixelShader->Release();
