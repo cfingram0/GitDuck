@@ -6,7 +6,58 @@
 namespace duckGfx {
   DuckContext globalContext;
 
-  bool Init(HWND windowHandle) {
+  RenderTarget2D::~RenderTarget2D() {
+    if (m_depthStencil) {
+      m_depthStencil->Release();
+      m_depthStencilView->Release();
+    }
+
+    for (uint8_t i = 0; i < m_numColorTargets; ++i) {
+      m_colorTargets[i]->Release();
+      m_colorViews[i]->Release();
+    }
+  }
+
+  void BindRenderTarget2D(ID3D11DeviceContext * context, const RenderTarget2D & rt) {
+    context->OMSetRenderTargets(rt.m_numColorTargets, rt.m_colorViews, rt.m_depthStencilView);
+  }
+
+  static bool CreateBackBufferRT(IDXGISwapChain * swapChain, RenderTarget2D * output) {
+    //get the back buffer, create a render target view, bind the view
+    HRESULT hr = globalContext.pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&output->m_colorTargets[0]);
+    if (FAILED(hr)) {
+      return false;
+    }
+
+    output->m_numColorTargets = 1;
+    //create the render target view
+    hr = globalContext.pDevice->CreateRenderTargetView(output->m_colorTargets[0], NULL, output->m_colorViews);
+
+    D3D11_TEXTURE2D_DESC backBufferDesc;
+    output->m_colorTargets[0]->GetDesc(&backBufferDesc);
+
+    //create the stencil depth buffer
+    D3D11_TEXTURE2D_DESC stencilDepthDesc;
+    stencilDepthDesc.Width = backBufferDesc.Width;
+    stencilDepthDesc.Height = backBufferDesc.Height;
+    stencilDepthDesc.MipLevels = 1;
+    stencilDepthDesc.ArraySize = 1;
+    stencilDepthDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    stencilDepthDesc.SampleDesc.Count = 1;
+    stencilDepthDesc.SampleDesc.Quality = 0;
+    stencilDepthDesc.Usage = D3D11_USAGE_DEFAULT;
+    stencilDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    stencilDepthDesc.CPUAccessFlags = 0;
+    stencilDepthDesc.MiscFlags = NULL;
+
+    globalContext.pDevice->CreateTexture2D(&stencilDepthDesc, NULL, &output->m_depthStencil);
+    globalContext.pDevice->CreateDepthStencilView(output->m_depthStencil, NULL, &output->m_depthStencilView);
+    return true;
+  }
+
+  static bool PickAdaptor(IDXGIAdapter1 ** outAdaptor) {
+    IDXGIAdapter1 * toReturn = nullptr;
+
     // get the adaptors and pick the one with the most dedicated ram
     IDXGIFactory1 * pFactory = NULL;
     CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&pFactory);
@@ -30,12 +81,33 @@ namespace duckGfx {
       WriteToOutput("%s\n", desc.Description);
     }
 
+    toReturn = adaptorArray[adapterWithMostRAM];
+    toReturn->AddRef();
+    *outAdaptor = toReturn;
+
+    // release intermediate objects
+    for (size_t i = 0; i < adaptorArray.size(); ++i) {
+      adaptorArray[i]->Release();
+    }
+    pFactory->Release();
+
+    return true;
+  }
+
+  static bool CreateSwapChain(HWND windowHandle, 
+                              uint32_t width, 
+                              uint32_t height, 
+                              IDXGIAdapter1 * adaptor, 
+                              IDXGISwapChain **outSwapChain,
+                              ID3D11Device **outDevice,
+                              ID3D11DeviceContext **outImmediateContext)
+  {  
     // create the swap chain
     DXGI_SWAP_CHAIN_DESC sc;
     ZeroMemory(&sc, sizeof(sc));
     sc.BufferCount = 1;
-    sc.BufferDesc.Width = 1600;
-    sc.BufferDesc.Height = 900;
+    sc.BufferDesc.Width = width;
+    sc.BufferDesc.Height = height;
     sc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sc.BufferDesc.RefreshRate.Numerator = 60;
     sc.BufferDesc.RefreshRate.Denominator = 1;
@@ -48,9 +120,9 @@ namespace duckGfx {
     D3D_FEATURE_LEVEL featureLevelsRequested = D3D_FEATURE_LEVEL_11_0;
     uint32_t numLevelsRequested = 1;
     D3D_FEATURE_LEVEL featureLevelsSupported;
-    
-    HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL,
-      D3D_DRIVER_TYPE_HARDWARE,
+
+    HRESULT hr = D3D11CreateDeviceAndSwapChain(adaptor,
+      D3D_DRIVER_TYPE_UNKNOWN,
       NULL,
 #ifdef DEBUG_DX
       D3D11_CREATE_DEVICE_DEBUG,
@@ -61,48 +133,35 @@ namespace duckGfx {
       numLevelsRequested,
       D3D11_SDK_VERSION,
       &sc,
-      &globalContext.pSwapChain,
-      &globalContext.pDevice,
+      outSwapChain,
+      outDevice,
       &featureLevelsSupported,
-      &globalContext.pImmediateContext);
+      outImmediateContext);
 
     if (FAILED(hr)) {
       return false;
     }
+    else {
+      return true;
+    }
+  }
 
-    //get the back buffer, create a render target view, bind the view
-    ID3D11Texture2D * pBackBuffer;
-    hr = globalContext.pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-    if (FAILED(hr)) {
+  bool Init(HWND windowHandle) {
+    IDXGIAdapter1 * chosenAdaptor = nullptr;
+    if (!PickAdaptor(&chosenAdaptor)) {
       return false;
     }
 
-    //create the render target view
-    hr = globalContext.pDevice->CreateRenderTargetView(pBackBuffer, NULL, &globalContext.pBackBufferRenderTargetView);
-    pBackBuffer->Release();
-
-    //create the stencil depth buffer
-    D3D11_TEXTURE2D_DESC stencilDepthDesc;
-    stencilDepthDesc.Width = 1600;
-    stencilDepthDesc.Height = 900;
-    stencilDepthDesc.MipLevels = 1;
-    stencilDepthDesc.ArraySize = 1;
-    stencilDepthDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-    stencilDepthDesc.SampleDesc.Count = 1;
-    stencilDepthDesc.SampleDesc.Quality = 0;
-    stencilDepthDesc.Usage = D3D11_USAGE_DEFAULT;
-    stencilDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    stencilDepthDesc.CPUAccessFlags = 0;
-    stencilDepthDesc.MiscFlags = NULL;
-  
-    globalContext.pDevice->CreateTexture2D(&stencilDepthDesc, NULL, &globalContext.depthBufferTex);
-    globalContext.pDevice->CreateDepthStencilView(globalContext.depthBufferTex, NULL, &globalContext.depthStencilView);
-
-    // release intermediate objects
-    for (size_t i = 0; i < adaptorArray.size(); ++i) {
-      adaptorArray[i]->Release();
+    if (!CreateSwapChain(windowHandle, 1600, 900, chosenAdaptor, &globalContext.pSwapChain, &globalContext.pDevice, &globalContext.pImmediateContext)) {
+      return false;
     }
-    pFactory->Release();
+    chosenAdaptor->Release();
+
+    // create the back buffer rt
+    globalContext.pBackBufferRt = new RenderTarget2D();
+    if (!CreateBackBufferRT(globalContext.pSwapChain, globalContext.pBackBufferRt)) {
+      return false;
+    }
 
     // generate buffer for hello world triangle
     testVert verts[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec3(1.0f, 0.0f, 0.0f), 
@@ -122,7 +181,7 @@ namespace duckGfx {
     initData.SysMemSlicePitch = 0;
 
     ID3D11Buffer * vertBuffer;
-    hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &vertBuffer);
+    HRESULT hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &vertBuffer);
     if (FAILED(hr)) {
       return false;
     }
@@ -248,28 +307,29 @@ namespace duckGfx {
 
 
     // pass 1 : clear back buffer
-    globalContext.pImmediateContext->OMSetRenderTargets(1, &globalContext.pBackBufferRenderTargetView, globalContext.depthStencilView);
+    RenderTarget2D * backBuffer = globalContext.pBackBufferRt;
+    BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
 
     static int counter = 0;
     // clear the back buffer, alternate colors so we know the back buffer is being cleared
     float color[4] = { 0.0f, 0.2f, 0.6f, 0.0f };
     float color2[4] = { 0.0f, 0.5f, 0.4f, 0.0f };
 
-    globalContext.pImmediateContext->ClearDepthStencilView(globalContext.depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+    globalContext.pImmediateContext->ClearDepthStencilView(backBuffer->m_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     if (counter / 60 == 1) {
-      globalContext.pImmediateContext->ClearRenderTargetView(globalContext.pBackBufferRenderTargetView, color2);
+      globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color2);
       if (counter == 119) {
         counter = 0;
       }
     }
     else {
-      globalContext.pImmediateContext->ClearRenderTargetView(globalContext.pBackBufferRenderTargetView, color);
+      globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color);
     }
 
 
 
     // pass 2 : render to back buffer
-    globalContext.pImmediateContext->OMSetRenderTargets(1, &globalContext.pBackBufferRenderTargetView, globalContext.depthStencilView);
+    BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
 
     D3D11_VIEWPORT viewport;
     viewport.TopLeftX = 0;
@@ -324,13 +384,12 @@ namespace duckGfx {
 
   void ShutDown() {
     // release all of our data
-    globalContext.pBackBufferRenderTargetView->Release();
     globalContext.pImmediateContext->Release();
     globalContext.pDevice->Release();
     globalContext.pSwapChain->Release();
-    globalContext.depthBufferTex->Release();
-    globalContext.depthStencilView->Release();
 
+    delete globalContext.pBackBufferRt;
+    globalContext.pBackBufferRt = nullptr;
 
     delete globalContext.camera;
     globalContext.camera = nullptr;
