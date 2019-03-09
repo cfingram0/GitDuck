@@ -288,7 +288,6 @@ namespace duckGfx {
     }
     globalContext.constantBuffer = constantBuffer;
 
-
     // set up the camera
     globalContext.camera = new Camera();
     globalContext.camera->m_AspectRatio = 16.0f / 9.0f;
@@ -297,8 +296,6 @@ namespace duckGfx {
     globalContext.camera->m_wFov = (90.0f * 3.14f) / 180.0f;
     globalContext.camera->m_transform.translation = Vec3(0, 2, 0);
     globalContext.camera->RefreshProjMatrix();
-
-
     return true;
   }
   
@@ -325,7 +322,6 @@ namespace duckGfx {
     else {
       globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color);
     }
-
 
 
     // pass 2 : render to back buffer
