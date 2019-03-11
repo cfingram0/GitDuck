@@ -1,5 +1,5 @@
 cbuffer TRANSFORM_BUFFER : register(b0) {
-  matrix mTransform;
+  matrix gTransform;
 };
 
 struct VS_Output {
@@ -7,12 +7,12 @@ struct VS_Output {
   float4 Color : COLOR;
 };
 
-VS_Output main( float3 pos : POSITION, float3 col : COLOR0 )
+VS_Output main( float3 pos : POSITION, float4 col : COLOR0 )
 {
   VS_Output output;
 
-  output.Position = mul(float4(pos, 1), mTransform);
-  output.Color = float4(col, 1);
+  output.Position = mul(float4(pos, 1), gTransform);
+  output.Color = col;
 
 	return output;
 }

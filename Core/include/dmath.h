@@ -10,8 +10,14 @@ namespace tag {
 
 class Vec2 {
 public:
-  float x;
-  float y;
+  union {
+    struct {
+      float x;
+      float y;
+    };
+
+    float m[2];
+  };
 
   Vec2(tag::NoInit) {}
   Vec2(tag::Zero) : x(0), y(0) {}
@@ -44,9 +50,15 @@ public:
 
 class Vec3 {
 public:
-  float x;
-  float y;
-  float z;
+  union {
+    struct {
+      float x;
+      float y;
+      float z;
+    };
+
+    float m[3];
+  };
 
   Vec3(tag::NoInit) {}
   Vec3(tag::Zero) : x(0), y(0), z(0) {}
@@ -81,10 +93,16 @@ public:
 
 class Vec4 {
 public:
-  float x;
-  float y;
-  float z;
-  float w;
+  union {
+    struct {
+      float x;
+      float y;
+      float z;
+      float w;
+    };
+
+    float m[4];
+  };
 
   Vec4(tag::NoInit) {}
   Vec4(tag::Zero) : x(0), y(0), z(0), w(0) {}
@@ -121,7 +139,16 @@ public:
 class Matrix4;
 class Quaternion {
 public:
-  float s, x, y, z;
+  union {
+    struct {
+      float s;
+      float x;
+      float y;
+      float z;
+    };
+
+    float m[4];
+  };
 
   Quaternion(float RadAngle, const Vec4& Axis);
   Quaternion(float RadAngle, const Vec3& Axis);

@@ -80,6 +80,8 @@ namespace duckGfx {
     
     uint32_t vertSize = 0;
     ID3D11Buffer * vertBuffer = nullptr;
+
+    uint32_t idxCount = 0;
     ID3D11Buffer * idxBuffer = nullptr;
     D3D11_PRIMITIVE_TOPOLOGY topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
   };
@@ -100,6 +102,100 @@ namespace duckGfx {
     TransformSRT m_transform{ tag::Identity{} };
   };
 
+
+  enum MaterialTechniqueID {
+    kColor,
+    kDepthOnly,
+    kCount
+  };
+
+  // don't support bool since varying bool sizes are likely 
+  // to cause headaches
+  enum MaterialParameterType {
+    kUint,   // 32-bit
+    kInt,    // 32-bit
+    kFloat,  // 32-bit
+  };
+
+  // start with just one constant buffer, with all of the per-object uniforms
+  class MaterialTechnique {
+  public:
+    ID3D11VertexShader * m_vertShader = nullptr;
+    ID3D11Buffer * m_vsConstantBuffer = nullptr;
+    uint32_t m_vsConstantBufferSize = 0;
+    uint32_t m_vsConstantBufferSlot = 0;
+
+    ID3D11PixelShader * m_pixelShader = nullptr;
+    ID3D11Buffer * m_psConstantBuffer = nullptr;
+    uint32_t m_psConstantBufferSize = 0;
+    uint32_t m_psConstantBufferSlot = 0;
+  };
+
+  class Material {
+  public:
+    ~Material();
+    struct VariableMap {
+      VariableMap() {
+        for (int32_t i = 0; i < MaterialTechniqueID::kCount; ++i) {
+          dataStartPs[i] = -1;
+          dataStartVs[i] = -1;
+        }
+        elementType = MaterialParameterType::kFloat;
+        numValues = 0;
+      }
+
+      StringHash varName;
+      MaterialParameterType elementType;
+      uint8_t numValues;
+
+      // starting point in index for each shader, -1 means the 
+      // variable isn't in that particular buffer
+      int32_t dataStartPs[MaterialTechniqueID::kCount];
+      int32_t dataStartVs[MaterialTechniqueID::kCount];
+    };
+
+    std::vector<VariableMap> variables;
+    MaterialTechnique techniques[MaterialTechniqueID::kCount];
+    ID3D11InputLayout * inputLayout = nullptr;
+    VertexFormat meshVertFormat;
+
+    const VariableMap * FindVariableData(StringHash name) const;
+  };
+
+  void BindMaterial(ID3D11DeviceContext * context, Material * mat, MaterialTechniqueID technique);
+
+  bool CreateTestMaterial(ID3D11Device * device, Material * outMaterial);
+
+
+  class MaterialInstance {
+  public:
+    MaterialInstance(Material * material);
+    bool SetParameter(StringHash name, float * data, uint32_t count);
+    bool SetParameter(StringHash name, uint32_t * data, uint32_t count);
+    bool SetParameter(StringHash name, int32_t * data, uint32_t count);
+    
+    bool SetParameter(StringHash name, float data);
+    bool SetParameter(StringHash name, uint32_t data);
+    bool SetParameter(StringHash name, int32_t data);
+
+    bool SetParameter(StringHash name, const Vec2 & data);
+    bool SetParameter(StringHash name, const Vec3 & data);
+    bool SetParameter(StringHash name, const Vec4 & data);
+
+    bool SetParameter(StringHash name, const Matrix4 & data);
+
+    void WriteToBuffers(const Material::VariableMap * varInfo, void * data, uint32_t size);
+
+    Material * m_material = nullptr;
+    std::vector<uint8_t> m_cpuVsConstantBuffer[MaterialTechniqueID::kCount];
+    std::vector<uint8_t> m_cpuPsConstantBuffer[MaterialTechniqueID::kCount];
+  };
+
+  void MapMaterialInstanceData(ID3D11DeviceContext * context, Material * mat, MaterialInstance * inst, MaterialTechniqueID technique);
+
+  bool CreateVertLayout(ID3D11Device * device, const VertexFormat & fmt, void * shaderByteCode, size_t shaderbyteCodeLength, ID3D11InputLayout ** outLayout);
+
+
   struct DuckContext {
     IDXGISwapChain * pSwapChain = nullptr;
     ID3D11Device * pDevice = nullptr;
@@ -117,17 +213,10 @@ namespace duckGfx {
     Model * testTriangle = nullptr;
 
     // material data
-    ID3D11VertexShader * vertShader = nullptr;
-    ID3D11PixelShader * pixelShader = nullptr;
-    ID3D11InputLayout * inputLayout = nullptr;
-    ID3D11Buffer * constantBuffer = nullptr;
+    Material * material = nullptr;
+    MaterialInstance * matInst = nullptr;
   };
 
   extern DuckContext globalContext;
-
-  struct testConstantBuffer {
-    Matrix4 matrix{ tag::Identity{} };
-  };
-
 
 }

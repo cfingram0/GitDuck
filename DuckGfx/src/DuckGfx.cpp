@@ -116,7 +116,7 @@ namespace duckGfx {
     // create the swap chain
     DXGI_SWAP_CHAIN_DESC sc;
     ZeroMemory(&sc, sizeof(sc));
-    sc.BufferCount = 1;
+    sc.BufferCount = 2;
     sc.BufferDesc.Width = width;
     sc.BufferDesc.Height = height;
     sc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -181,40 +181,6 @@ namespace duckGfx {
   }
 
 
-
-  static bool CreateVertLayout(ID3D11Device * device, const VertexFormat & fmt, void * shaderByteCode, size_t shaderbyteCodeLength, ID3D11InputLayout ** outLayout) {
-    std::vector<D3D11_INPUT_ELEMENT_DESC> layout;
-
-    if (fmt.hasPosition) {
-      D3D11_INPUT_ELEMENT_DESC posLayout = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0};
-      layout.push_back(posLayout);
-    }
-    if (fmt.hasNormals) {
-      D3D11_INPUT_ELEMENT_DESC normalLayout = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-      layout.push_back(normalLayout);
-    }
-    if (fmt.hasTangentFrame) {
-      D3D11_INPUT_ELEMENT_DESC tanFrameLayout[] = { { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }, 
-                                                    { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }};
-      layout.push_back(tanFrameLayout[0]);
-      layout.push_back(tanFrameLayout[1]);
-    }
-    if (fmt.hasBlendWeightsAndIndices) {
-      // need to thank about this one, just assert fail for now
-      assert(false); // not implemented
-    }
-    for (uint32_t i = 0; i < fmt.numUVsets; ++i) {
-      D3D11_INPUT_ELEMENT_DESC texLayout = { "TEXCOORD", i, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-      layout.push_back(texLayout);
-    }
-    for (uint32_t i = 0; i < fmt.numUVsets; ++i) {
-      D3D11_INPUT_ELEMENT_DESC colorLayout = { "COLOR", i, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
-      layout.push_back(colorLayout);
-    }
-
-    device->CreateInputLayout(&layout[0], UINT(layout.size()), shaderByteCode, shaderbyteCodeLength, outLayout);
-  }
-
   static bool GenerateDebugTriangle(Mesh* output) {
     output->format.hasPosition = 1;
     output->format.numColorSets = 1;
@@ -270,6 +236,7 @@ namespace duckGfx {
     }
 
     output->idxBuffer = idxBuffer;
+    output->idxCount = 3;
     output->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     return true;
   }
@@ -292,51 +259,19 @@ namespace duckGfx {
       return false;
     }
 
+    // create the mesh
     Mesh * newMesh = new Mesh();
     GenerateDebugTriangle(newMesh);
     globalContext.testTriangle = new Model();
     globalContext.testTriangle->m_theMesh = newMesh;
     globalContext.testTriangle->m_transform = TransformSRT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
 
+    Material * material = new Material();
+    CreateTestMaterial(globalContext.pDevice, material);
+    globalContext.material = material;
 
-    // load the shaders
-    std::vector<uint8_t> bytes;
-    bool success = ReadAllBytes("TestVertexShader.cso", &bytes);
-    if (!success) {
-      return false;
-    }
-
-    ID3D11VertexShader * vertShader = nullptr;
-    globalContext.pDevice->CreateVertexShader(bytes.data(), bytes.size(), nullptr, &vertShader);
-    if (!vertShader) {
-      return false;
-    }
-    globalContext.vertShader = vertShader;
-
-
-    ID3D11InputLayout * pLayout;
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-      { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-      { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-    HRESULT hr = globalContext.pDevice->CreateInputLayout(layout, 2, bytes.data(), bytes.size(), &pLayout);
-    if (FAILED(hr)) {
-      return false;
-    }
-    globalContext.inputLayout = pLayout;
-
-
-    ID3D11PixelShader * pixelShader;
-    success = ReadAllBytes("TestPixelShader.cso", &bytes);
-    if (!success) {
-      return false;
-    }
-    globalContext.pDevice->CreatePixelShader(bytes.data(), bytes.size(), nullptr, &pixelShader);
-    if (!pixelShader) {
-      return false;
-    }
-    globalContext.pixelShader = pixelShader;
-
+    MaterialInstance * inst = new MaterialInstance(material);
+    globalContext.matInst = inst;
 
     ID3D11RasterizerState * rasterizorState;
     D3D11_RASTERIZER_DESC rastDesc;
@@ -366,22 +301,6 @@ namespace duckGfx {
     ID3D11DepthStencilState * depthStencilState;
     globalContext.pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilState);
     globalContext.depthStencilState = depthStencilState;
-
-
-    ID3D11Buffer * constantBuffer = NULL;
-    D3D11_BUFFER_DESC cbDesc;
-    cbDesc.ByteWidth = sizeof(testConstantBuffer);
-    cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-    cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    cbDesc.MiscFlags = 0;
-    cbDesc.StructureByteStride = 0;
-
-    hr = globalContext.pDevice->CreateBuffer(&cbDesc, NULL, &constantBuffer);
-    if (FAILED(hr)) {
-      return false;
-    }
-    globalContext.constantBuffer = constantBuffer;
 
     // set up the camera
     globalContext.camera = new Camera();
@@ -434,26 +353,18 @@ namespace duckGfx {
     globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.depthStencilState, 0);
     globalContext.camera->RefreshProjView();
 
+    // material data
+    BindMaterial(globalContext.pImmediateContext, globalContext.material, MaterialTechniqueID::kColor);
+
+    //set the mesh
     BindMesh(globalContext.pImmediateContext, *globalContext.testTriangle->m_theMesh);
 
-    // material data
-    globalContext.pImmediateContext->VSSetShader(globalContext.vertShader, nullptr, 0);
-    globalContext.pImmediateContext->PSSetShader(globalContext.pixelShader, nullptr, 0);
-    globalContext.pImmediateContext->IASetInputLayout(globalContext.inputLayout);
+    // update the constant buffer data
+    Matrix4 mymatrix = globalContext.camera->m_viewProj * globalContext.testTriangle->m_transform.CalcMatrix();
+    globalContext.matInst->SetParameter("gTransform", mymatrix);
+    MapMaterialInstanceData(globalContext.pImmediateContext, globalContext.material, globalContext.matInst, MaterialTechniqueID::kColor);
 
-    Matrix4 mymatrix(tag::Identity{});
-    TransformSRT worldT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
-    Matrix4 world = worldT.CalcMatrix();
-
-    mymatrix = globalContext.camera->m_viewProj * globalContext.testTriangle->m_transform.CalcMatrix();
-
-    D3D11_MAPPED_SUBRESOURCE subresource;
-    ZeroMemory(&subresource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-    globalContext.pImmediateContext->Map(globalContext.constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &subresource);
-    memcpy(subresource.pData, &mymatrix.v[0], sizeof(Matrix4));
-    globalContext.pImmediateContext->Unmap(globalContext.constantBuffer, 0);
-    globalContext.pImmediateContext->VSSetConstantBuffers(0, 1, &globalContext.constantBuffer);
-
+    // actually draw
     globalContext.pImmediateContext->DrawIndexed(3, 0, 0);
 
 
@@ -477,11 +388,13 @@ namespace duckGfx {
     delete globalContext.testTriangle;
     globalContext.testTriangle = nullptr;
 
-    globalContext.inputLayout->Release();
-    globalContext.vertShader->Release();
-    globalContext.pixelShader->Release();
+    delete globalContext.material;
+    globalContext.material = nullptr;
+
+    delete globalContext.matInst;
+    globalContext.matInst = nullptr;
+
     globalContext.rasterizorState->Release();
     globalContext.depthStencilState->Release();
-    globalContext.constantBuffer->Release();
   }
 }
