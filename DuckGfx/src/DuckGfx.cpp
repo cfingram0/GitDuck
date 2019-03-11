@@ -310,12 +310,19 @@ namespace duckGfx {
     globalContext.camera->m_wFov = (90.0f * 3.14f) / 180.0f;
     globalContext.camera->m_transform.translation = Vec3(0, 2, 0);
     globalContext.camera->RefreshProjMatrix();
+
+    globalContext.pImmediateContext->QueryInterface(&globalContext.annotator);
     return true;
   }
   
   void Render() {
-    
+    // update the mesh uniform data 
+    Matrix4 mymatrix = globalContext.camera->m_viewProj * globalContext.testTriangle->m_transform.CalcMatrix();
+    globalContext.matInst->SetParameter("gTransform", mymatrix);
+
     // pass 1 : clear back buffer
+    if (globalContext.annotator)
+      globalContext.annotator->BeginEvent(L"Clear Backbuffer");
     RenderTarget2D * backBuffer = globalContext.pBackBufferRt;
     BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
 
@@ -335,6 +342,12 @@ namespace duckGfx {
       globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color);
     }
 
+
+    if (globalContext.annotator)
+      globalContext.annotator->EndEvent();
+
+    if (globalContext.annotator)
+      globalContext.annotator->BeginEvent(L"Render To Backbuffer");
 
     // pass 2 : render to back buffer
     BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
@@ -360,16 +373,21 @@ namespace duckGfx {
     BindMesh(globalContext.pImmediateContext, *globalContext.testTriangle->m_theMesh);
 
     // update the constant buffer data
-    Matrix4 mymatrix = globalContext.camera->m_viewProj * globalContext.testTriangle->m_transform.CalcMatrix();
-    globalContext.matInst->SetParameter("gTransform", mymatrix);
     MapMaterialInstanceData(globalContext.pImmediateContext, globalContext.material, globalContext.matInst, MaterialTechniqueID::kColor);
 
-    // actually draw
     globalContext.pImmediateContext->DrawIndexed(3, 0, 0);
 
+    if (globalContext.annotator)
+      globalContext.annotator->EndEvent();
 
+    if (globalContext.annotator)
+      globalContext.annotator->BeginEvent(L"Swap");
     // flip the swap chain, with vsync
     globalContext.pSwapChain->Present(1, 0);
+    if (globalContext.annotator)
+      globalContext.annotator->EndEvent();
+
+
     counter++;
   }
 
@@ -396,5 +414,7 @@ namespace duckGfx {
 
     globalContext.rasterizorState->Release();
     globalContext.depthStencilState->Release();
+
+    globalContext.annotator->Release();
   }
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d11.h>
+#include <d3d11_1.h>
 #include <cstdio>
 #include <cassert>
 #include <cstdint>
@@ -29,8 +30,8 @@ namespace duckGfx {
   struct RenderTarget2D {
     ~RenderTarget2D();
     // color targets
-    ID3D11Texture2D * m_colorTargets[8] = { 0 };
     uint8_t m_numColorTargets = 0;
+    ID3D11Texture2D * m_colorTargets[8] = { 0 };
     ID3D11RenderTargetView * m_colorViews[8] = { 0 };
 
     // depth target
@@ -196,6 +197,7 @@ namespace duckGfx {
   bool CreateVertLayout(ID3D11Device * device, const VertexFormat & fmt, void * shaderByteCode, size_t shaderbyteCodeLength, ID3D11InputLayout ** outLayout);
 
 
+
   struct DuckContext {
     IDXGISwapChain * pSwapChain = nullptr;
     ID3D11Device * pDevice = nullptr;
@@ -211,6 +213,8 @@ namespace duckGfx {
     Camera * camera = nullptr;
 
     Model * testTriangle = nullptr;
+
+    ID3DUserDefinedAnnotation * annotator = nullptr;
 
     // material data
     Material * material = nullptr;
