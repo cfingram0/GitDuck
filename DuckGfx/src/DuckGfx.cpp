@@ -65,6 +65,48 @@ namespace duckGfx {
     globalContext.pDevice->CreateDepthStencilView(output->m_depthStencil, NULL, &output->m_depthStencilView);
     return true;
   }
+  static bool CreateToBackBufferRenderState(ID3D11Device * device, 
+                                            ID3D11RasterizerState ** rasterizerState,
+                                            ID3D11DepthStencilState ** depthStencilState, 
+                                            ID3D11Buffer ** buffer) {
+    D3D11_RASTERIZER_DESC rastDesc;
+    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
+    rastDesc.FrontCounterClockwise = true;
+    rastDesc.DepthBias = 0;
+    rastDesc.DepthBiasClamp = 0;
+    rastDesc.SlopeScaledDepthBias = 0;
+    rastDesc.DepthClipEnable = TRUE;
+    rastDesc.ScissorEnable = true;
+    rastDesc.MultisampleEnable = true;
+    rastDesc.AntialiasedLineEnable = false;
+
+    device->CreateRasterizerState(&rastDesc, rasterizerState);
+
+    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+    ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+
+    depthStencilDesc.DepthEnable = true;
+    depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depthStencilDesc.StencilEnable = false;
+
+    device->CreateDepthStencilState(&depthStencilDesc, depthStencilState);
+
+
+    ID3D11Buffer * constantBuffer = NULL;
+    D3D11_BUFFER_DESC cbDesc;
+    cbDesc.ByteWidth = sizeof(Matrix4);
+    cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+    cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    cbDesc.MiscFlags = 0;
+    cbDesc.StructureByteStride = 0;
+
+    globalContext.pDevice->CreateBuffer(&cbDesc, NULL, buffer);
+
+    return (*rasterizerState) && (*depthStencilState) && (*buffer);
+  }
 
   static bool PickAdaptor(IDXGIAdapter1 ** outAdaptor) {
     IDXGIAdapter1 * toReturn = nullptr;
@@ -266,6 +308,7 @@ namespace duckGfx {
     globalContext.testTriangle->m_theMesh = newMesh;
     globalContext.testTriangle->m_transform = TransformSRT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
 
+    // create the material
     Material * material = new Material();
     CreateTestMaterial(globalContext.pDevice, material);
     globalContext.material = material;
@@ -273,34 +316,8 @@ namespace duckGfx {
     MaterialInstance * inst = new MaterialInstance(material);
     globalContext.matInst = inst;
 
-    ID3D11RasterizerState * rasterizorState;
-    D3D11_RASTERIZER_DESC rastDesc;
-    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
-    rastDesc.FrontCounterClockwise = true;
-    rastDesc.DepthBias = 0;
-    rastDesc.DepthBiasClamp = 0;
-    rastDesc.SlopeScaledDepthBias = 0;
-    rastDesc.DepthClipEnable = TRUE;
-    rastDesc.ScissorEnable = false;
-    rastDesc.MultisampleEnable = false;
-    rastDesc.AntialiasedLineEnable = false;
-
-    globalContext.pDevice->CreateRasterizerState(&rastDesc, &rasterizorState);
-    globalContext.rasterizorState = rasterizorState;
-
-
-    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-    ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
-
-    depthStencilDesc.DepthEnable = true;
-    depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    depthStencilDesc.StencilEnable = false;
-
-    ID3D11DepthStencilState * depthStencilState;
-    globalContext.pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilState);
-    globalContext.depthStencilState = depthStencilState;
+    // create the render state for the backbuffer
+    CreateToBackBufferRenderState(globalContext.pDevice, &globalContext.toBackbufferRS, &globalContext.toBackbufferDSS, &globalContext.toBackBufferPassCb);
 
     // set up the camera
     globalContext.camera = new Camera();
@@ -317,7 +334,7 @@ namespace duckGfx {
   
   void Render() {
     // update the mesh uniform data 
-    Matrix4 mymatrix = globalContext.camera->m_viewProj * globalContext.testTriangle->m_transform.CalcMatrix();
+    Matrix4 mymatrix = globalContext.testTriangle->m_transform.CalcMatrix();
     globalContext.matInst->SetParameter("gTransform", mymatrix);
 
     // pass 1 : clear back buffer
@@ -361,10 +378,25 @@ namespace duckGfx {
     viewport.MaxDepth = 1;
     globalContext.pImmediateContext->RSSetViewports(1, &viewport);
     
+    D3D11_RECT rect;
+    rect.top = 0;
+    rect.left = 0;
+    rect.bottom = 900;
+    rect.right = 1600;
+
     // pass data
-    globalContext.pImmediateContext->RSSetState(globalContext.rasterizorState);
-    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.depthStencilState, 0);
+    globalContext.pImmediateContext->RSSetState(globalContext.toBackbufferRS);
+    globalContext.pImmediateContext->RSSetScissorRects(1, &rect);
+    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.toBackbufferDSS, 0);
     globalContext.camera->RefreshProjView();
+
+    //set up pass constant buffer
+    D3D11_MAPPED_SUBRESOURCE passCb;
+    globalContext.pImmediateContext->Map(globalContext.toBackBufferPassCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
+    memcpy(passCb.pData, globalContext.camera->m_viewProj.v, sizeof(Matrix4));
+    globalContext.pImmediateContext->Unmap(globalContext.toBackBufferPassCb, 0);
+    globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
+
 
     // material data
     BindMaterial(globalContext.pImmediateContext, globalContext.material, MaterialTechniqueID::kColor);
@@ -412,8 +444,9 @@ namespace duckGfx {
     delete globalContext.matInst;
     globalContext.matInst = nullptr;
 
-    globalContext.rasterizorState->Release();
-    globalContext.depthStencilState->Release();
+    globalContext.toBackbufferRS->Release();
+    globalContext.toBackbufferDSS->Release();
+    globalContext.toBackBufferPassCb->Release();
 
     globalContext.annotator->Release();
   }

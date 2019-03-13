@@ -197,7 +197,6 @@ namespace duckGfx {
   bool CreateVertLayout(ID3D11Device * device, const VertexFormat & fmt, void * shaderByteCode, size_t shaderbyteCodeLength, ID3D11InputLayout ** outLayout);
 
 
-
   struct DuckContext {
     IDXGISwapChain * pSwapChain = nullptr;
     ID3D11Device * pDevice = nullptr;
@@ -206,9 +205,10 @@ namespace duckGfx {
     // render target
     RenderTarget2D * pBackBufferRt = nullptr;
 
-    // pass data
-    ID3D11RasterizerState * rasterizorState = nullptr;
-    ID3D11DepthStencilState * depthStencilState = nullptr;
+    // To backbuffer Render state
+    ID3D11RasterizerState * toBackbufferRS = nullptr;
+    ID3D11DepthStencilState * toBackbufferDSS = nullptr;
+    ID3D11Buffer * toBackBufferPassCb = nullptr;
 
     Camera * camera = nullptr;
 
