@@ -423,7 +423,7 @@ namespace duckGfx {
     counter++;
   }
 
-  void ShutDown() {
+  void Shutdown() {
     // release all of our data
     globalContext.pImmediateContext->Release();
     globalContext.pDevice->Release();

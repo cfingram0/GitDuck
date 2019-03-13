@@ -1,7 +1,9 @@
-
+#include <vector>
 #include "windows.h"
 #include "DuckGfx.h"
 
+#include "sample_framework.h"
+#include "sample_test.h"
 
 #define MAX_LOADSTRING 100
 
@@ -15,6 +17,14 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int, HWND *);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+
+std::vector<ISample*> samples;
+ISample* pSample = nullptr;
+int32_t currentSample = -1;
+int32_t desiredSample = 0;
+
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
   _In_opt_ HINSTANCE hPrevInstance,
@@ -42,10 +52,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return FALSE;
   }
 
+  samples.push_back(new Sample_Test());
+
 
   //single threaded render loop
   MSG msg;
   while (running) {
+    if (desiredSample != currentSample) {
+      if (pSample) {
+        pSample->OnEnd();
+        pSample->Shutdown();
+      }
+
+      currentSample = desiredSample;
+      pSample = samples[currentSample];
+      pSample->Init();
+      pSample->OnStart();
+    }
+
+
     //input
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
       TranslateMessage(&msg);
@@ -53,13 +78,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     //logic
+    if (pSample)
+      pSample->Update(1.0f / 60.0f);
 
     //graphics
     duckGfx::Render();
   }
 
+  // shut down
+  if (pSample) {
+    pSample->OnEnd();
+    pSample->Shutdown();
+  }
 
-  duckGfx::ShutDown();
+  duckGfx::Shutdown();
   return (int)msg.wParam;
 }
 
