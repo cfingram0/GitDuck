@@ -22,17 +22,6 @@ namespace duckGfx {
     context->OMSetRenderTargets(rt.m_numColorTargets, rt.m_colorViews, rt.m_depthStencilView);
   }
 
-  void BindMesh(ID3D11DeviceContext * context, const Mesh & mesh) {
-    // hey look, the place where real rendering happens
-    uint32_t stride = mesh.vertSize;
-    uint32_t offset = 0;
-
-    // mesh data
-    context->IASetVertexBuffers(0, 1, &mesh.vertBuffer, &stride, &offset);
-    context->IASetIndexBuffer(mesh.idxBuffer, DXGI_FORMAT::DXGI_FORMAT_R32_UINT, 0);
-    context->IASetPrimitiveTopology(mesh.topology);
-  }
-
   static bool CreateBackBufferRT(IDXGISwapChain * swapChain, RenderTarget2D * output) {
     //get the back buffer, create a render target view, bind the view
     HRESULT hr = globalContext.pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&output->m_colorTargets[0]);
@@ -198,91 +187,7 @@ namespace duckGfx {
       return true;
     }
   }
-
-  static uint32_t VertSize(const VertexFormat & fmt) {
-    uint32_t sizeAccum = 0;
-    if (fmt.hasPosition) {
-      sizeAccum += sizeof(Vec3);
-    }
-    if (fmt.hasNormals) {
-      sizeAccum += sizeof(Vec3);
-    }
-    if (fmt.hasTangentFrame) {
-      sizeAccum += 2 * sizeof(Vec3);
-    }
-    if (fmt.hasBlendWeightsAndIndices) {
-      sizeAccum += 4 * (sizeof(float) + sizeof(uint32_t));
-    }
-    if (fmt.numUVsets) {
-      sizeAccum += fmt.numUVsets * sizeof(Vec2);
-    }
-    if (fmt.numColorSets) {
-      sizeAccum += fmt.numColorSets * sizeof(Vec4);
-    }
-    return sizeAccum;
-  }
-
-
-  static bool GenerateDebugTriangle(Mesh* output) {
-    output->format.hasPosition = 1;
-    output->format.numColorSets = 1;
-
-    // generate buffer for hello world triangle
-    struct { 
-      Vec3 pos; 
-      Vec4 color; 
-    } vertData[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec4(1.0f, 0.0f, 0.0f, 1),
-                     Vec3(0.5f, 0.0f,  0.0f), Vec4(0.0f, 1.0f, 0.0f, 1.0f),
-                     Vec3(0.5f, 0.5f,  0.0f), Vec4(0.0f, 0.0f, 1.0f, 1.0f)};
-
-    const uint32_t numVerts = 3;
-    const uint32_t vertSize = VertSize(output->format);
-    output->vertSize = vertSize;
-
-    D3D11_BUFFER_DESC desc;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.ByteWidth = vertSize * numVerts;
-    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    desc.CPUAccessFlags = 0;
-    desc.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA initData;
-    initData.pSysMem = vertData;
-    initData.SysMemPitch = 0;
-    initData.SysMemSlicePitch = 0;
-
-    ID3D11Buffer * vertBuffer;
-    HRESULT hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &vertBuffer);
-    if (FAILED(hr)) {
-      return false;
-    }
-    output->vertBuffer = vertBuffer;
-
-    uint32_t indices[] = { 0, 1, 2 };
-    D3D11_BUFFER_DESC desc_idx;
-    desc_idx.Usage = D3D11_USAGE_DEFAULT;
-    desc_idx.ByteWidth = sizeof(uint32_t) * 3;
-    desc_idx.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    desc_idx.CPUAccessFlags = 0;
-    desc_idx.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA initData_idx;
-    initData_idx.pSysMem = indices;
-    initData_idx.SysMemPitch = 0;
-    initData_idx.SysMemSlicePitch = 0;
-
-    ID3D11Buffer * idxBuffer;
-    hr = globalContext.pDevice->CreateBuffer(&desc_idx, &initData_idx, &idxBuffer);
-    if (FAILED(hr)) {
-      return false;
-    }
-
-    output->idxBuffer = idxBuffer;
-    output->idxCount = 3;
-    output->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    return true;
-  }
-
+  
 
   bool Init(HWND windowHandle) {
     IDXGIAdapter1 * chosenAdaptor = nullptr;
@@ -300,21 +205,6 @@ namespace duckGfx {
     if (!CreateBackBufferRT(globalContext.pSwapChain, globalContext.pBackBufferRt)) {
       return false;
     }
-
-    // create the mesh
-    Mesh * newMesh = new Mesh();
-    GenerateDebugTriangle(newMesh);
-    globalContext.testTriangle = new Model();
-    globalContext.testTriangle->m_theMesh = newMesh;
-    globalContext.testTriangle->m_transform = TransformSRT(Vec3(2, 1, 1), Quaternion((45.0f * 3.14f) / 180.0f, Vec3(0, 0, 1)), Vec3(0, 3, -5));
-
-    // create the material
-    Material * material = new Material();
-    CreateTestMaterial(globalContext.pDevice, material);
-    globalContext.material = material;
-
-    MaterialInstance * inst = new MaterialInstance(material);
-    globalContext.matInst = inst;
 
     // create the render state for the backbuffer
     CreateToBackBufferRenderState(globalContext.pDevice, &globalContext.toBackbufferRS, &globalContext.toBackbufferDSS, &globalContext.toBackBufferPassCb);
@@ -334,8 +224,10 @@ namespace duckGfx {
   
   void Render() {
     // update the mesh uniform data 
-    Matrix4 mymatrix = globalContext.testTriangle->m_transform.CalcMatrix();
-    globalContext.matInst->SetParameter("gTransform", mymatrix);
+    for (uint32_t i = 0; i < globalContext.theScene.m_models.size(); ++i) {
+      Model* model = globalContext.theScene.m_models[i];
+      model->m_matInstance->SetParameter("gTransform", model->m_transform.CalcMatrix());
+    }
 
     // pass 1 : clear back buffer
     if (globalContext.annotator)
@@ -358,7 +250,6 @@ namespace duckGfx {
     else {
       globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color);
     }
-
 
     if (globalContext.annotator)
       globalContext.annotator->EndEvent();
@@ -398,16 +289,21 @@ namespace duckGfx {
     globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
 
 
-    // material data
-    BindMaterial(globalContext.pImmediateContext, globalContext.material, MaterialTechniqueID::kColor);
+    for (uint32_t modelIter = 0; modelIter < globalContext.theScene.m_models.size(); ++modelIter) {
+      Model * model = globalContext.theScene.m_models[modelIter];
 
-    //set the mesh
-    BindMesh(globalContext.pImmediateContext, *globalContext.testTriangle->m_theMesh);
+      // material data
+      BindMaterial(globalContext.pImmediateContext, model->m_matInstance->m_material, MaterialTechniqueID::kColor);
 
-    // update the constant buffer data
-    MapMaterialInstanceData(globalContext.pImmediateContext, globalContext.material, globalContext.matInst, MaterialTechniqueID::kColor);
+      //set the mesh
+      BindMesh(globalContext.pImmediateContext, *model->m_theMesh);
 
-    globalContext.pImmediateContext->DrawIndexed(3, 0, 0);
+      // update the constant buffer data
+      MapMaterialInstanceData(globalContext.pImmediateContext, model->m_matInstance->m_material, model->m_matInstance, MaterialTechniqueID::kColor);
+
+      globalContext.pImmediateContext->DrawIndexed(model->m_theMesh->idxCount, 0, 0);
+    }
+
 
     if (globalContext.annotator)
       globalContext.annotator->EndEvent();
@@ -434,15 +330,6 @@ namespace duckGfx {
 
     delete globalContext.camera;
     globalContext.camera = nullptr;
-
-    delete globalContext.testTriangle;
-    globalContext.testTriangle = nullptr;
-
-    delete globalContext.material;
-    globalContext.material = nullptr;
-
-    delete globalContext.matInst;
-    globalContext.matInst = nullptr;
 
     globalContext.toBackbufferRS->Release();
     globalContext.toBackbufferDSS->Release();

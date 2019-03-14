@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "DuckGfx.h"
+
 #include "debug.h"
 #include "dmath.h"
 #include "io.h"
@@ -68,41 +70,7 @@ namespace duckGfx {
     };
   };
 
-  struct Mesh {
-    ~Mesh() {
-      vertBuffer->Release();
-      vertBuffer = nullptr;
-      idxBuffer->Release();
-      idxBuffer = nullptr;
-    }
-
-    StringHash matId;
-    VertexFormat format;
-    
-    uint32_t vertSize = 0;
-    ID3D11Buffer * vertBuffer = nullptr;
-
-    uint32_t idxCount = 0;
-    ID3D11Buffer * idxBuffer = nullptr;
-    D3D11_PRIMITIVE_TOPOLOGY topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-  };
-
-  void BindMesh(ID3D11DeviceContext * context, const Mesh & mesh);
-
-
-  class Model {
-  public:
-    ~Model() {
-      if (m_theMesh) {
-        delete m_theMesh;
-        m_theMesh = nullptr;
-      }
-    }
-    // only one mesh per model now, will change later
-    Mesh * m_theMesh = nullptr;
-    TransformSRT m_transform{ tag::Identity{} };
-  };
-
+  uint32_t VertSize(const VertexFormat & fmt);
 
   enum MaterialTechniqueID {
     kColor,
@@ -132,7 +100,7 @@ namespace duckGfx {
     uint32_t m_psConstantBufferSlot = 0;
   };
 
-  class Material {
+  class Material  : public IMaterial {
   public:
     ~Material();
     struct VariableMap {
@@ -165,27 +133,28 @@ namespace duckGfx {
 
   void BindMaterial(ID3D11DeviceContext * context, Material * mat, MaterialTechniqueID technique);
 
-  bool CreateTestMaterial(ID3D11Device * device, Material * outMaterial);
 
-
-  class MaterialInstance {
+  class MaterialInstance : public IMaterialInstance {
   public:
+
+    // local
     MaterialInstance(Material * material);
-    bool SetParameter(StringHash name, float * data, uint32_t count);
-    bool SetParameter(StringHash name, uint32_t * data, uint32_t count);
-    bool SetParameter(StringHash name, int32_t * data, uint32_t count);
-    
-    bool SetParameter(StringHash name, float data);
-    bool SetParameter(StringHash name, uint32_t data);
-    bool SetParameter(StringHash name, int32_t data);
-
-    bool SetParameter(StringHash name, const Vec2 & data);
-    bool SetParameter(StringHash name, const Vec3 & data);
-    bool SetParameter(StringHash name, const Vec4 & data);
-
-    bool SetParameter(StringHash name, const Matrix4 & data);
-
     void WriteToBuffers(const Material::VariableMap * varInfo, void * data, uint32_t size);
+
+    // IMaterialInstance
+    bool SetParameter(StringHash name, float * data, uint32_t count) override;
+    bool SetParameter(StringHash name, uint32_t * data, uint32_t count) override;
+    bool SetParameter(StringHash name, int32_t * data, uint32_t count) override;
+    
+    bool SetParameter(StringHash name, float data) override;
+    bool SetParameter(StringHash name, uint32_t data) override;
+    bool SetParameter(StringHash name, int32_t data) override;
+
+    bool SetParameter(StringHash name, const Vec2 & data) override;
+    bool SetParameter(StringHash name, const Vec3 & data) override;
+    bool SetParameter(StringHash name, const Vec4 & data) override;
+
+    bool SetParameter(StringHash name, const Matrix4 & data) override;
 
     Material * m_material = nullptr;
     std::vector<uint8_t> m_cpuVsConstantBuffer[MaterialTechniqueID::kCount];
@@ -196,6 +165,55 @@ namespace duckGfx {
 
   bool CreateVertLayout(ID3D11Device * device, const VertexFormat & fmt, void * shaderByteCode, size_t shaderbyteCodeLength, ID3D11InputLayout ** outLayout);
 
+  struct Mesh {
+    ~Mesh() {
+      vertBuffer->Release();
+      vertBuffer = nullptr;
+      idxBuffer->Release();
+      idxBuffer = nullptr;
+    }
+
+    StringHash matId;
+    VertexFormat format;
+
+    uint32_t vertSize = 0;
+    ID3D11Buffer * vertBuffer = nullptr;
+
+    uint32_t idxCount = 0;
+    ID3D11Buffer * idxBuffer = nullptr;
+    D3D11_PRIMITIVE_TOPOLOGY topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+  };
+
+  void BindMesh(ID3D11DeviceContext * context, const Mesh & mesh);
+
+
+  class Model : public IModel {
+  public:
+    ~Model() {
+      if (m_theMesh) {
+        delete m_theMesh;
+        m_theMesh = nullptr;
+      }
+    }
+
+    void SetTransform(const TransformSRT & arg) override;
+    void SetMaterialInstance(IMaterialInstance * instance) override;
+
+    // only one mesh per model now, will change later
+    Mesh * m_theMesh = nullptr;
+    MaterialInstance * m_matInstance = nullptr;
+    TransformSRT m_transform{ tag::Identity{} };
+  };
+
+  class Scene : public IScene {
+  public:
+    std::vector<Model*> m_models;
+    Camera * m_mainCamera;
+
+    void AddModel(IModel * model) override;
+    void RemoveModel(IModel * model) override;
+    void SetMainCamera(ICamera * camera) override;
+  };
 
   struct DuckContext {
     IDXGISwapChain * pSwapChain = nullptr;
@@ -212,13 +230,10 @@ namespace duckGfx {
 
     Camera * camera = nullptr;
 
-    Model * testTriangle = nullptr;
-
     ID3DUserDefinedAnnotation * annotator = nullptr;
 
-    // material data
-    Material * material = nullptr;
-    MaterialInstance * matInst = nullptr;
+
+    Scene theScene;
   };
 
   extern DuckContext globalContext;

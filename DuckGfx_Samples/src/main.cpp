@@ -54,7 +54,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
   samples.push_back(new Sample_Test());
 
-
   //single threaded render loop
   MSG msg;
   while (running) {
