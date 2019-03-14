@@ -189,13 +189,16 @@ namespace duckGfx {
   }
   
 
-  bool Init(HWND windowHandle) {
+  bool Init(HWND windowHandle, uint32_t width, uint32_t height) {
     IDXGIAdapter1 * chosenAdaptor = nullptr;
     if (!PickAdaptor(&chosenAdaptor)) {
       return false;
     }
 
-    if (!CreateSwapChain(windowHandle, 1600, 900, chosenAdaptor, &globalContext.pSwapChain, &globalContext.pDevice, &globalContext.pImmediateContext)) {
+    globalContext.width = width;
+    globalContext.height = height;
+
+    if (!CreateSwapChain(windowHandle, globalContext.width, globalContext.height, chosenAdaptor, &globalContext.pSwapChain, &globalContext.pDevice, &globalContext.pImmediateContext)) {
       return false;
     }
     chosenAdaptor->Release();
@@ -208,15 +211,6 @@ namespace duckGfx {
 
     // create the render state for the backbuffer
     CreateToBackBufferRenderState(globalContext.pDevice, &globalContext.toBackbufferRS, &globalContext.toBackbufferDSS, &globalContext.toBackBufferPassCb);
-
-    // set up the camera
-    globalContext.camera = new Camera();
-    globalContext.camera->m_AspectRatio = 16.0f / 9.0f;
-    globalContext.camera->m_near = 1.0f;
-    globalContext.camera->m_far = 10.0f;
-    globalContext.camera->m_wFov = (90.0f * 3.14f) / 180.0f;
-    globalContext.camera->m_transform.translation = Vec3(0, 2, 0);
-    globalContext.camera->RefreshProjMatrix();
 
     globalContext.pImmediateContext->QueryInterface(&globalContext.annotator);
     return true;
@@ -263,28 +257,32 @@ namespace duckGfx {
     D3D11_VIEWPORT viewport;
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
-    viewport.Width = 1600;
-    viewport.Height = 900;
+    viewport.Width = (float)globalContext.width;
+    viewport.Height = (float)globalContext.height;
     viewport.MinDepth = 0;
     viewport.MaxDepth = 1;
-    globalContext.pImmediateContext->RSSetViewports(1, &viewport);
     
     D3D11_RECT rect;
     rect.top = 0;
     rect.left = 0;
-    rect.bottom = 900;
-    rect.right = 1600;
+    rect.bottom = globalContext.height;
+    rect.right = globalContext.width;
 
     // pass data
-    globalContext.pImmediateContext->RSSetState(globalContext.toBackbufferRS);
+    globalContext.pImmediateContext->RSSetViewports(1, &viewport);
     globalContext.pImmediateContext->RSSetScissorRects(1, &rect);
+    globalContext.pImmediateContext->RSSetState(globalContext.toBackbufferRS);
     globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.toBackbufferDSS, 0);
-    globalContext.camera->RefreshProjView();
+
 
     //set up pass constant buffer
+    Matrix4 cam = Matrix4{ tag::Identity{} };
+    if (globalContext.theScene.m_mainCamera)
+      cam = globalContext.theScene.m_mainCamera->m_viewProj;
+
     D3D11_MAPPED_SUBRESOURCE passCb;
     globalContext.pImmediateContext->Map(globalContext.toBackBufferPassCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
-    memcpy(passCb.pData, globalContext.camera->m_viewProj.v, sizeof(Matrix4));
+    memcpy(passCb.pData, cam.v, sizeof(Matrix4));
     globalContext.pImmediateContext->Unmap(globalContext.toBackBufferPassCb, 0);
     globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
 
@@ -327,9 +325,6 @@ namespace duckGfx {
 
     delete globalContext.pBackBufferRt;
     globalContext.pBackBufferRt = nullptr;
-
-    delete globalContext.camera;
-    globalContext.camera = nullptr;
 
     globalContext.toBackbufferRS->Release();
     globalContext.toBackbufferDSS->Release();

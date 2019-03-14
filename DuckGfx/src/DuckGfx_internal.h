@@ -14,13 +14,16 @@
 #include "stringhash.h"
 
 namespace duckGfx {
-  class Camera {
+  class Camera : public ICamera {
   public:
+    void SetTransform(const TransformRT & arg) override;
+    void SetPerspective(float wFov, float aspectRatio, float nearPlane, float farPlane) override;
+
     TransformRT m_transform{ tag::Identity{} };
     Matrix4 m_proj{ tag::NoInit{} };
     Matrix4 m_viewProj{ tag::NoInit{} };
     float m_wFov;
-    float m_AspectRatio;
+    float m_aspectRatio;
     float m_near;
     float m_far;
 
@@ -216,6 +219,9 @@ namespace duckGfx {
   };
 
   struct DuckContext {
+    uint32_t width = 0;
+    uint32_t height = 0;
+
     IDXGISwapChain * pSwapChain = nullptr;
     ID3D11Device * pDevice = nullptr;
     ID3D11DeviceContext * pImmediateContext = nullptr;
@@ -228,10 +234,7 @@ namespace duckGfx {
     ID3D11DepthStencilState * toBackbufferDSS = nullptr;
     ID3D11Buffer * toBackBufferPassCb = nullptr;
 
-    Camera * camera = nullptr;
-
     ID3DUserDefinedAnnotation * annotator = nullptr;
-
 
     Scene theScene;
   };

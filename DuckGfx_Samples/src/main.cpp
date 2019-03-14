@@ -48,7 +48,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     return FALSE;
   }
 
-  if (!duckGfx::Init(windowHandle)) {
+  if (!duckGfx::Init(windowHandle, 1600, 900)) {
     return FALSE;
   }
 

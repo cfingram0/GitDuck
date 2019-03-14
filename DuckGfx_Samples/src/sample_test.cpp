@@ -15,11 +15,16 @@ void Sample_Test::Init() {
 
   m_triangle->SetMaterialInstance(m_matInst);
 
+  m_camera = duckGfx::ICamera::Create();
+  m_camera->SetPerspective((90.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 1.0f, 10.0f);
+  m_camera->SetTransform(TransformRT{ Quaternion{tag::Identity{}}, Vec3(0, 2, 0) });
+
   m_angle = 0;
 }
 
 void Sample_Test::OnStart() {
   m_scene->AddModel(m_triangle);
+  m_scene->SetMainCamera(m_camera);
 }
 
 void Sample_Test::Update(float dt) {
@@ -31,6 +36,7 @@ void Sample_Test::Update(float dt) {
 
 void Sample_Test::OnEnd() {
   m_scene->RemoveModel(m_triangle);
+  m_scene->SetMainCamera(nullptr);
 }
 
 void Sample_Test::Shutdown() {
@@ -41,5 +47,4 @@ void Sample_Test::Shutdown() {
 
   duckGfx::IMaterial::Destroy(m_material);
   m_material = nullptr;
-
 }

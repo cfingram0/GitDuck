@@ -4,7 +4,7 @@
 #include "windows.h"
 
 namespace duckGfx {
-  bool Init(HWND window);
+  bool Init(HWND window, uint32_t width, uint32_t height);
   void Render();
   void Shutdown();
 
@@ -44,7 +44,11 @@ namespace duckGfx {
 
   class ICamera {
   public:
+    static ICamera * Create();
+    static void Destroy(ICamera * arg);
+
     virtual void SetTransform(const TransformRT & arg) = 0;
+    virtual void SetPerspective(float wFov, float aspectRatio, float nearPlane, float farPlane) = 0;
   };
 
   class IScene {

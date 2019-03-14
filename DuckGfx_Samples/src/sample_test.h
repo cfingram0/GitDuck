@@ -12,6 +12,8 @@ class Sample_Test : public ISample {
   duckGfx::IModel * m_triangle = nullptr;
   duckGfx::IMaterial * m_material = nullptr;
   duckGfx::IMaterialInstance * m_matInst = nullptr;
+  duckGfx::ICamera * m_camera = nullptr;
+
   float m_angle = 0;
   TransformSRT m_modelTrans{ tag::NoInit{} };
 };
