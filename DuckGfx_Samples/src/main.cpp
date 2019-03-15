@@ -4,6 +4,7 @@
 
 #include "sample_framework.h"
 #include "sample_test.h"
+#include "cube_test.h"
 
 #define MAX_LOADSTRING 100
 
@@ -22,7 +23,7 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 std::vector<ISample*> samples;
 ISample* pSample = nullptr;
 int32_t currentSample = -1;
-int32_t desiredSample = 0;
+int32_t desiredSample = -1;
 
 
 
@@ -53,6 +54,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
   }
 
   samples.push_back(new Sample_Test());
+  samples.push_back(new Cube_Test());
+  desiredSample = 1;
 
   //single threaded render loop
   MSG msg;

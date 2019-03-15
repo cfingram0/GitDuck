@@ -35,6 +35,7 @@ namespace duckGfx {
 
   void Model::SetMaterialInstance(IMaterialInstance * instance) {
     m_matInstance = reinterpret_cast<MaterialInstance *>(instance);
+    assert(m_matInstance->m_material->meshVertFormat == m_theMesh->format);
   }
 
   void BindMesh(ID3D11DeviceContext * context, const Mesh & mesh) {
