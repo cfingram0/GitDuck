@@ -226,6 +226,9 @@ namespace duckGfx {
     ID3D11Device * pDevice = nullptr;
     ID3D11DeviceContext * pImmediateContext = nullptr;
 
+    // global cb data
+    ID3D11Buffer * lightingDataCb = nullptr;
+
     // render target
     RenderTarget2D * pBackBufferRt = nullptr;
 

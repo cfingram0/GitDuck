@@ -315,7 +315,7 @@ namespace duckGfx {
 
     ID3D11Buffer * constantBuffer = NULL;
     D3D11_BUFFER_DESC cbDesc;
-    cbDesc.ByteWidth = sizeof(Matrix4);
+    cbDesc.ByteWidth = 2 * sizeof(Matrix4);
     cbDesc.Usage = D3D11_USAGE_DYNAMIC;
     cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -327,7 +327,7 @@ namespace duckGfx {
       return false;
     }
     outMaterial->techniques[MaterialTechniqueID::kColor].m_vsConstantBuffer = constantBuffer;
-    outMaterial->techniques[MaterialTechniqueID::kColor].m_vsConstantBufferSize = sizeof(float) * 16;
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_vsConstantBufferSize = 2 * sizeof(Matrix4);
     outMaterial->techniques[MaterialTechniqueID::kColor].m_vsConstantBufferSlot = 0;
 
 
@@ -338,6 +338,40 @@ namespace duckGfx {
     map.varName = "gTransform";
 
     outMaterial->variables.push_back(map);
+
+    Material::VariableMap map2;
+    map2.dataStartVs[MaterialTechniqueID::kColor] = sizeof(Matrix4);
+    map2.elementType = MaterialParameterType::kFloat;
+    map2.numValues = 16;
+    map2.varName = "gNormalTransform";
+    outMaterial->variables.push_back(map2);
+
+    //pixel constant buffer
+    ID3D11Buffer * constantBuffer2 = NULL;
+    D3D11_BUFFER_DESC cbDesc2;
+    cbDesc2.ByteWidth = sizeof(Vec4);
+    cbDesc2.Usage = D3D11_USAGE_DYNAMIC;
+    cbDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    cbDesc2.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    cbDesc2.MiscFlags = 0;
+    cbDesc2.StructureByteStride = 0;
+
+    hr = globalContext.pDevice->CreateBuffer(&cbDesc2, NULL, &constantBuffer2);
+    if (FAILED(hr)) {
+      return false;
+    }
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBuffer = constantBuffer2;
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBufferSize = sizeof(Vec4);
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBufferSlot = 0;
+
+
+    Material::VariableMap map3;
+    map3.dataStartPs[MaterialTechniqueID::kColor] = 0;
+    map3.elementType = MaterialParameterType::kFloat;
+    map3.numValues = 4;
+    map3.varName = "color";
+
+    outMaterial->variables.push_back(map3);
 
     return true;
   }

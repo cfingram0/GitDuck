@@ -212,6 +212,16 @@ namespace duckGfx {
     // create the render state for the backbuffer
     CreateToBackBufferRenderState(globalContext.pDevice, &globalContext.toBackbufferRS, &globalContext.toBackbufferDSS, &globalContext.toBackBufferPassCb);
 
+    //light data
+    D3D11_BUFFER_DESC cbDesc;
+    cbDesc.ByteWidth = sizeof(Vec4);
+    cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+    cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    cbDesc.MiscFlags = 0;
+    cbDesc.StructureByteStride = 0;
+    globalContext.pDevice->CreateBuffer(&cbDesc, NULL, &globalContext.lightingDataCb);
+
     globalContext.pImmediateContext->QueryInterface(&globalContext.annotator);
     return true;
   }
@@ -221,6 +231,10 @@ namespace duckGfx {
     for (uint32_t i = 0; i < globalContext.theScene.m_models.size(); ++i) {
       Model* model = globalContext.theScene.m_models[i];
       model->m_matInstance->SetParameter("gTransform", model->m_transform.CalcMatrix());
+
+      Matrix4 invTrans = model->m_transform.CalcInvMatrix();
+      invTrans.Transpose();
+      model->m_matInstance->SetParameter("gNormalTransform", invTrans);
     }
 
     // pass 1 : clear back buffer
@@ -285,6 +299,18 @@ namespace duckGfx {
     memcpy(passCb.pData, cam.v, sizeof(Matrix4));
     globalContext.pImmediateContext->Unmap(globalContext.toBackBufferPassCb, 0);
     globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
+
+    // set up lighting constant buffer
+    Vec4 pos = Vec4(0, 0, 0, 1);
+    if (globalContext.theScene.m_mainCamera) {
+      Vec3 camTrans = globalContext.theScene.m_mainCamera->m_transform.translation;
+      pos = Vec4(camTrans.x, camTrans.y, camTrans.z, 1);
+    }
+    globalContext.pImmediateContext->Map(globalContext.lightingDataCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
+    memcpy(passCb.pData, pos.m, sizeof(Vec4));
+    globalContext.pImmediateContext->Unmap(globalContext.lightingDataCb, 0);
+    globalContext.pImmediateContext->PSSetConstantBuffers(1, 1, &globalContext.lightingDataCb);
+
 
 
     for (uint32_t modelIter = 0; modelIter < globalContext.theScene.m_models.size(); ++modelIter) {

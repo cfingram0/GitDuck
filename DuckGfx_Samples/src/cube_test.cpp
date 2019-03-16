@@ -12,6 +12,7 @@ void Cube_Test::Init() {
   m_material = duckGfx::GenerateDebugCubeMaterial();
 
   m_matInst = duckGfx::IMaterialInstance::Create(m_material);
+  m_matInst->SetParameter("color", Vec4(1, 0, 0, 1));
 
   m_triangle->SetMaterialInstance(m_matInst);
 
