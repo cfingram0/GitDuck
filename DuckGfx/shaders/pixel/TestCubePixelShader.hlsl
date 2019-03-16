@@ -6,6 +6,8 @@ struct VS_Output {
 
 cbuffer MATERIAL_DATA : register(b0) {
   float4 color;
+  float roughness;
+  float3 unused;
 }
 
 cbuffer LIGHTING_DATA : register(b1) {

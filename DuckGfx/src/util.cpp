@@ -349,7 +349,7 @@ namespace duckGfx {
     //pixel constant buffer
     ID3D11Buffer * constantBuffer2 = NULL;
     D3D11_BUFFER_DESC cbDesc2;
-    cbDesc2.ByteWidth = sizeof(Vec4);
+    cbDesc2.ByteWidth = 2 * sizeof(Vec4);
     cbDesc2.Usage = D3D11_USAGE_DYNAMIC;
     cbDesc2.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     cbDesc2.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -361,7 +361,7 @@ namespace duckGfx {
       return false;
     }
     outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBuffer = constantBuffer2;
-    outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBufferSize = sizeof(Vec4);
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBufferSize = 2 * sizeof(Vec4);
     outMaterial->techniques[MaterialTechniqueID::kColor].m_psConstantBufferSlot = 0;
 
 
@@ -370,8 +370,15 @@ namespace duckGfx {
     map3.elementType = MaterialParameterType::kFloat;
     map3.numValues = 4;
     map3.varName = "color";
-
     outMaterial->variables.push_back(map3);
+
+    Material::VariableMap map4;
+    map4.dataStartPs[MaterialTechniqueID::kColor] = sizeof(Vec4);
+    map4.elementType = MaterialParameterType::kFloat;
+    map4.numValues = 1;
+    map4.varName = "roughness";
+
+    outMaterial->variables.push_back(map4);
 
     return true;
   }
