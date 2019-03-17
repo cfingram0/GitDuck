@@ -1,5 +1,6 @@
 #include "cube_test.h"
 #include "DuckGfx_utils.h"
+#include "input.h"
 
 void Cube_Test::Init() {
   m_scene = duckGfx::GetScene();
@@ -18,8 +19,9 @@ void Cube_Test::Init() {
   m_triangle->SetMaterialInstance(m_matInst);
 
   m_camera = duckGfx::ICamera::Create();
-  m_camera->SetPerspective((60.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 1.0f, 100.0f);
-  m_camera->SetTransform(TransformRT{ Quaternion{tag::Identity{}}, Vec3(0, 0, 0) });
+  m_camera->SetPerspective((60.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 0.1f, 100.0f);
+  m_cameraTrans = TransformRT{ tag::Identity{} };
+  m_camera->SetTransform(m_cameraTrans);
 
 
   m_model2 = duckGfx::GenerateDebugCubeModel();
@@ -49,6 +51,25 @@ void Cube_Test::Update(float dt) {
   m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, 0));
   m_modelTrans2.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(.2, 1, 0));
   m_angle += 90.0f * dt;
+
+  Vec3 offset{ tag::Zero{} };
+  if (input::IsPressed(Key::W)) {
+    offset += Vec3(0, 0, -1);
+  }
+  if (input::IsPressed(Key::S)) {
+    offset += Vec3(0, 0, 1);
+  }
+  if (input::IsPressed(Key::A)) {
+    offset += Vec3(-1, 0, 0);
+  }
+  if (input::IsPressed(Key::D)) {
+    offset += Vec3(1, 0, 0);
+  }
+
+  m_cameraTrans.translation += offset * 2 * dt;
+  m_camera->SetTransform(m_cameraTrans);
+
+
   m_triangle->SetTransform(m_modelTrans);
   m_model2->SetTransform(m_modelTrans2);
 }

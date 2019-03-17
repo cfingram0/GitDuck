@@ -6,6 +6,8 @@
 #include "sample_test.h"
 #include "cube_test.h"
 
+#include "input.h"
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -72,6 +74,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
       pSample->OnStart();
     }
 
+    input::Update();
 
     //input
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -82,6 +85,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //logic
     if (pSample)
       pSample->Update(1.0f / 60.0f);
+
+    if (input::IsTriggered(Key::NUM_1)) {
+      desiredSample = 0;
+    }
+    if (input::IsTriggered(Key::NUM_2)) {
+      desiredSample = 1;
+    }
+    if (input::IsTriggered(Key::ESCAPE)) {
+      running = false;
+    }
+
 
     //graphics
     duckGfx::Render();
@@ -177,6 +191,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
   switch (message)
   {
   break;
+  case WM_KEYDOWN:
+    input::HandleKeyDownMsg(wParam);
+    break;
+
+  case WM_KEYUP:
+    input::HandleKeyUpMsg(wParam);
+    break;
 
   case WM_DESTROY:
     PostQuitMessage(0);

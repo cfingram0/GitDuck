@@ -12,7 +12,9 @@ class Cube_Test : public ISample {
   duckGfx::IModel * m_triangle = nullptr;
   duckGfx::IMaterial * m_material = nullptr;
   duckGfx::IMaterialInstance * m_matInst = nullptr;
+
   duckGfx::ICamera * m_camera = nullptr;
+  TransformRT m_cameraTrans{ tag::NoInit{} };
 
   duckGfx::IModel * m_model2 = nullptr;
   duckGfx::IMaterialInstance * m_matInst2 = nullptr;
