@@ -14,7 +14,7 @@ void Cube_Test::Init() {
 
   m_matInst = duckGfx::IMaterialInstance::Create(m_material);
   m_matInst->SetParameter("color", Vec4(1, 0, 0, 1));
-  m_matInst->SetParameter("roughness", 2.0f);
+  m_matInst->SetParameter("roughness", 4.0f);
 
   m_triangle->SetMaterialInstance(m_matInst);
 
@@ -29,7 +29,7 @@ void Cube_Test::Init() {
   m_model2->SetMaterialInstance(m_matInst2);
 
   m_matInst2->SetParameter("color", Vec4(0, 0, 1, 1));
-  m_matInst2->SetParameter("roughness", 100.0f);
+  m_matInst2->SetParameter("roughness", 50.0f);
 
   m_modelTrans2 = TransformSRT(Vec3(1, 1, 1),
                                Quaternion((0 * 3.14f) / 180.0f, Vec3(1, 1, 0)),

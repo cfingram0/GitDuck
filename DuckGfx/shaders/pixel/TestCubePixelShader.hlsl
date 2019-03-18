@@ -27,7 +27,7 @@ float4 main(VS_Output input) : SV_TARGET
   float3 toView = normalize(cameraWorldPos.xyz - input.wPosition.xyz);
   float specDot = dot(toView, reflected);
   float spec = specDot > 0 ? specDot : 0;
-  spec = pow(spec, 10);
+  spec = pow(spec, roughness);
 
   return float4(float3(spec, spec, spec) + (diffuse + ambient) * color.xyz, 1);
 }
