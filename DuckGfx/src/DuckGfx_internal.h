@@ -213,9 +213,16 @@ namespace duckGfx {
     std::vector<Model*> m_models;
     Camera * m_mainCamera;
 
+    Vec3 m_lightDirection = {0, 1, 0};
+    Vec3 m_lightColor = { 1,1,1 };
+    Vec3 m_ambientColor = { 0,0,0 };
+
     void AddModel(IModel * model) override;
     void RemoveModel(IModel * model) override;
     void SetMainCamera(ICamera * camera) override;
+    void SetLightDir(const Vec3 & rhs) override;
+    void SetlightColor(const Vec3 & rhs) override;
+    void SetAmbientColor(const Vec3 & rhs) override;
   };
 
   struct DuckContext {
@@ -226,7 +233,20 @@ namespace duckGfx {
     ID3D11Device * pDevice = nullptr;
     ID3D11DeviceContext * pImmediateContext = nullptr;
 
-    // global cb data
+    // global lighting cb data
+    struct LightingData {
+      LightingData() {
+      }
+      union {
+        struct {
+          Vec4 cameraPos;
+          Vec4 lightDir;
+          Vec4 lightColor;
+          Vec4 ambient;
+        };
+        float data[16] = {0};
+      };
+    } lightingDataBuffer;
     ID3D11Buffer * lightingDataCb = nullptr;
 
     // render target

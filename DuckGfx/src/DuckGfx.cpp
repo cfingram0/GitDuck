@@ -214,7 +214,7 @@ namespace duckGfx {
 
     //light data
     D3D11_BUFFER_DESC cbDesc;
-    cbDesc.ByteWidth = sizeof(Vec4);
+    cbDesc.ByteWidth = sizeof(DuckContext::LightingData);
     cbDesc.Usage = D3D11_USAGE_DYNAMIC;
     cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -301,13 +301,20 @@ namespace duckGfx {
     globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
 
     // set up lighting constant buffer
-    Vec4 pos = Vec4(0, 0, 0, 1);
     if (globalContext.theScene.m_mainCamera) {
       Vec3 camTrans = globalContext.theScene.m_mainCamera->m_transform.translation;
-      pos = Vec4(camTrans.x, camTrans.y, camTrans.z, 1);
+      globalContext.lightingDataBuffer.cameraPos = Vec4(camTrans, 1);;
     }
+    else {
+      globalContext.lightingDataBuffer.cameraPos = Vec4(0, 0, 0, 1);
+    }
+
+    globalContext.lightingDataBuffer.lightColor = Vec4(globalContext.theScene.m_lightColor, 1);
+    globalContext.lightingDataBuffer.lightDir = Vec4(globalContext.theScene.m_lightDirection, 0);
+    globalContext.lightingDataBuffer.ambient = Vec4(globalContext.theScene.m_ambientColor, 1);
+
     globalContext.pImmediateContext->Map(globalContext.lightingDataCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
-    memcpy(passCb.pData, pos.m, sizeof(Vec4));
+    memcpy(passCb.pData, globalContext.lightingDataBuffer.data, sizeof(DuckContext::LightingData));
     globalContext.pImmediateContext->Unmap(globalContext.lightingDataCb, 0);
     globalContext.pImmediateContext->PSSetConstantBuffers(1, 1, &globalContext.lightingDataCb);
 

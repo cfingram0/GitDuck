@@ -35,7 +35,9 @@ void Cube_Test::Init() {
                                Quaternion((0 * 3.14f) / 180.0f, Vec3(1, 1, 0)),
                                Vec3(-2, 0, -5));
 
-
+  m_scene->SetAmbientColor(Vec3(0.2f, 0.2f, 0.2f));
+  m_scene->SetLightDir(Vec3(1, 1, 1));
+  m_scene->SetlightColor(Vec3(1.0f, 1.0f, 1.0f));
 
   m_angle = 0;
 }

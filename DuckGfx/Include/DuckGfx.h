@@ -57,6 +57,10 @@ namespace duckGfx {
     virtual void RemoveModel(IModel * model) = 0;
   
     virtual void SetMainCamera(ICamera * camera) = 0;
+
+    virtual void SetLightDir(const Vec3 & rhs) = 0;
+    virtual void SetlightColor(const Vec3 & rhs) = 0;
+    virtual void SetAmbientColor(const Vec3 & rhs) = 0;
   };
   IScene * GetScene();
 

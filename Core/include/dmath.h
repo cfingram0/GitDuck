@@ -108,6 +108,7 @@ public:
   Vec4(tag::Zero) : x(0), y(0), z(0), w(0) {}
   Vec4(const Vec4 & rhs) : x(rhs.x), y(rhs.y), z(rhs.z), w(rhs.w) {}
   Vec4(float xArg, float yArg, float zArg, float wArg) : x(xArg), y(yArg), z(zArg), w(wArg) {}
+  Vec4(const Vec3 & rhs, float rhsW) : x(rhs.x), y(rhs.y), z(rhs.z), w(rhsW) {}
   Vec4 & operator=(const Vec4 & rhs) {
     x = rhs.x;
     y = rhs.y;

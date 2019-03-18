@@ -29,4 +29,16 @@ namespace duckGfx {
   void Scene::SetMainCamera(ICamera * camera) {
     m_mainCamera = reinterpret_cast<Camera *>(camera);
   }
+
+  void Scene::SetLightDir(const Vec3 & rhs) {
+    m_lightDirection = Normalize(rhs);
+  }
+
+  void Scene::SetlightColor(const Vec3 & rhs) {
+    m_lightColor = rhs;
+  }
+
+  void Scene::SetAmbientColor(const Vec3 & rhs) {
+    m_ambientColor = rhs;
+  }
 }
