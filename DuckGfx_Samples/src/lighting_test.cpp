@@ -1,14 +1,14 @@
-#include "cube_test.h"
+#include "lighting_test.h"
 #include "DuckGfx_utils.h"
 #include "input.h"
 
-void Cube_Test::Init() {
+void Lighting_Test::Init() {
   m_scene = duckGfx::GetScene();
   m_triangle = duckGfx::GenerateDebugCubeModel();
 
   m_modelTrans = TransformSRT(Vec3(1, 1, 1),
                  Quaternion((0 * 3.14f) / 180.0f, Vec3(1, 1, 0)),
-                 Vec3(2, 0, -5));
+                 Vec3(0, 0, -5));
 
   m_material = duckGfx::GenerateDebugCubeMaterial();
 
@@ -28,12 +28,12 @@ void Cube_Test::Init() {
   m_matInst2 = duckGfx::IMaterialInstance::Create(m_material);
   m_model2->SetMaterialInstance(m_matInst2);
 
-  m_matInst2->SetParameter("color", Vec4(0, 0, 1, 1));
+  m_matInst2->SetParameter("color", Vec4(1, 1, 1, 1));
   m_matInst2->SetParameter("roughness", 50.0f);
 
-  m_modelTrans2 = TransformSRT(Vec3(1, 1, 1),
-                               Quaternion((0 * 3.14f) / 180.0f, Vec3(1, 1, 0)),
-                               Vec3(-2, 0, -5));
+  m_modelTrans2 = TransformSRT(Vec3(10, 1, 10),
+                               Quaternion(tag::Identity{}),
+                               Vec3(0, -2, -5));
 
   m_scene->SetAmbientColor(Vec3(0.2f, 0.2f, 0.2f));
   m_scene->SetLightDir(Vec3(1, 1, 1));
@@ -42,16 +42,15 @@ void Cube_Test::Init() {
   m_angle = 0;
 }
 
-void Cube_Test::OnStart() {
+void Lighting_Test::OnStart() {
   m_scene->AddModel(m_triangle);
   m_scene->AddModel(m_model2);
   m_scene->SetMainCamera(m_camera);
 }
 
-void Cube_Test::Update(float dt) {
+void Lighting_Test::Update(float dt) {
   // rotate the triangle
   m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, 0));
-  m_modelTrans2.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(.2, 1, 0));
   m_angle += 90.0f * dt;
 
   Vec3 offset{ tag::Zero{} };
@@ -82,13 +81,13 @@ void Cube_Test::Update(float dt) {
   m_model2->SetTransform(m_modelTrans2);
 }
 
-void Cube_Test::OnEnd() {
+void Lighting_Test::OnEnd() {
   m_scene->RemoveModel(m_triangle);
   m_scene->RemoveModel(m_model2);
   m_scene->SetMainCamera(nullptr);
 }
 
-void Cube_Test::Shutdown() {
+void Lighting_Test::Shutdown() {
   duckGfx::IModel::Destroy(m_triangle);
   m_triangle = nullptr;
   duckGfx::IMaterialInstance::Destroy(m_matInst);

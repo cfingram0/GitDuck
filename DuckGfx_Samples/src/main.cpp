@@ -5,6 +5,7 @@
 #include "sample_framework.h"
 #include "sample_test.h"
 #include "cube_test.h"
+#include "lighting_test.h"
 
 #include "input.h"
 
@@ -57,7 +58,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
   samples.push_back(new Sample_Test());
   samples.push_back(new Cube_Test());
-  desiredSample = 1;
+  samples.push_back(new Lighting_Test());
+  desiredSample = 2;
 
   //single threaded render loop
   MSG msg;
