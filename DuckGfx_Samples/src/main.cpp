@@ -94,6 +94,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (input::IsTriggered(Key::NUM_2)) {
       desiredSample = 1;
     }
+    if (input::IsTriggered(Key::NUM_3)) {
+      desiredSample = 2;
+    }
     if (input::IsTriggered(Key::ESCAPE)) {
       running = false;
     }

@@ -14,7 +14,7 @@ void Lighting_Test::Init() {
 
   m_matInst = duckGfx::IMaterialInstance::Create(m_material);
   m_matInst->SetParameter("color", Vec4(1, 0, 0, 1));
-  m_matInst->SetParameter("roughness", 4.0f);
+  m_matInst->SetParameter("roughness", 50.0f);
 
   m_triangle->SetMaterialInstance(m_matInst);
 
@@ -36,8 +36,13 @@ void Lighting_Test::Init() {
                                Vec3(0, -2, -5));
 
   m_scene->SetAmbientColor(Vec3(0.2f, 0.2f, 0.2f));
-  m_scene->SetLightDir(Vec3(1, 1, 1));
-  m_scene->SetlightColor(Vec3(1.0f, 1.0f, 1.0f));
+  m_scene->SetLightDir(Vec3(1, 1, 0));
+  m_scene->SetlightColor(Vec3(0.390f, 0.42f, 0.45f));
+
+  m_pLight = duckGfx::IPointLight::Create();
+  m_pLight->SetColor(Vec3(1.0f, 0.57f, 0.16f));
+  m_pLight->SetIntensity(1.0f);
+  m_pLight->SetPosition(Vec3(-2, 0, -5));
 
   m_angle = 0;
 }
@@ -46,12 +51,13 @@ void Lighting_Test::OnStart() {
   m_scene->AddModel(m_triangle);
   m_scene->AddModel(m_model2);
   m_scene->SetMainCamera(m_camera);
+  m_scene->AddLight(m_pLight);
 }
 
 void Lighting_Test::Update(float dt) {
   // rotate the triangle
   m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, 0));
-  m_angle += 90.0f * dt;
+  m_angle += 30.0f * dt;
 
   Vec3 offset{ tag::Zero{} };
   if (input::IsPressed(Key::W)) {

@@ -208,6 +208,19 @@ namespace duckGfx {
     TransformSRT m_transform{ tag::Identity{} };
   };
 
+
+  class PointLight : public IPointLight {
+  public:
+    void SetPosition(const Vec3 & pos) override;
+    void SetColor(const Vec3 & color) override;
+    void SetIntensity(float arg) override;
+
+    float m_intensity = 1;
+    Vec3 m_position = tag::Zero{};
+    Vec3 m_color = {1, 1, 1};
+  };
+
+
   class Scene : public IScene {
   public:
     std::vector<Model*> m_models;
@@ -217,12 +230,19 @@ namespace duckGfx {
     Vec3 m_lightColor = { 1,1,1 };
     Vec3 m_ambientColor = { 0,0,0 };
 
+    std::vector<PointLight*> m_pointLights;
+
     void AddModel(IModel * model) override;
     void RemoveModel(IModel * model) override;
+    
     void SetMainCamera(ICamera * camera) override;
+    
     void SetLightDir(const Vec3 & rhs) override;
     void SetlightColor(const Vec3 & rhs) override;
     void SetAmbientColor(const Vec3 & rhs) override;
+
+    void AddLight(IPointLight * light) override;
+    void RemoveLight(IPointLight * light) override;
   };
 
   struct DuckContext {
@@ -243,8 +263,11 @@ namespace duckGfx {
           Vec4 lightDir;
           Vec4 lightColor;
           Vec4 ambient;
+
+          Vec4 pointPos;
+          Vec4 pointColor;
         };
-        float data[16] = {0};
+        float data[24] = {0};
       };
     } lightingDataBuffer;
     ID3D11Buffer * lightingDataCb = nullptr;

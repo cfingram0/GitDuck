@@ -26,6 +26,27 @@ namespace duckGfx {
     }
   }
 
+  void Scene::AddLight(IPointLight * light) {
+    PointLight * lightInt = reinterpret_cast<PointLight *>(light);
+
+    for (uint32_t i = 0; i < m_pointLights.size(); ++i)
+      assert(m_pointLights[i] != lightInt);
+
+    m_pointLights.push_back(lightInt);
+  }
+
+  void Scene::RemoveLight(IPointLight * light) {
+    PointLight * lightInt = reinterpret_cast<PointLight *>(light);
+
+    for (uint32_t i = 0; i < m_pointLights.size(); ++i) {
+      if (m_pointLights[i] == lightInt) {
+        m_pointLights[i] = m_pointLights[m_pointLights.size() - 1];
+        m_pointLights.resize(m_pointLights.size() - 1);
+        break;
+      }
+    }
+  }
+
   void Scene::SetMainCamera(ICamera * camera) {
     m_mainCamera = reinterpret_cast<Camera *>(camera);
   }

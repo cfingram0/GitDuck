@@ -312,6 +312,9 @@ namespace duckGfx {
     globalContext.lightingDataBuffer.lightColor = Vec4(globalContext.theScene.m_lightColor, 1);
     globalContext.lightingDataBuffer.lightDir = Vec4(globalContext.theScene.m_lightDirection, 0);
     globalContext.lightingDataBuffer.ambient = Vec4(globalContext.theScene.m_ambientColor, 1);
+    globalContext.lightingDataBuffer.pointPos = Vec4(globalContext.theScene.m_pointLights[0]->m_position, 1);
+    globalContext.lightingDataBuffer.pointColor = Vec4(globalContext.theScene.m_pointLights[0]->m_color, globalContext.theScene.m_pointLights[0]->m_intensity);
+
 
     globalContext.pImmediateContext->Map(globalContext.lightingDataCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
     memcpy(passCb.pData, globalContext.lightingDataBuffer.data, sizeof(DuckContext::LightingData));

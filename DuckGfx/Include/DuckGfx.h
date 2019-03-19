@@ -51,6 +51,16 @@ namespace duckGfx {
     virtual void SetPerspective(float wFov, float aspectRatio, float nearPlane, float farPlane) = 0;
   };
 
+  class IPointLight {
+  public:
+    static IPointLight * Create();
+    static void Destroy(IPointLight * arg);
+
+    virtual void SetPosition(const Vec3 & pos) = 0;
+    virtual void SetColor(const Vec3 & color) = 0;
+    virtual void SetIntensity(float arg) = 0;
+  };
+
   class IScene {
   public:
     virtual void AddModel(IModel * model) = 0;
@@ -58,9 +68,13 @@ namespace duckGfx {
   
     virtual void SetMainCamera(ICamera * camera) = 0;
 
+    // main light
     virtual void SetLightDir(const Vec3 & rhs) = 0;
     virtual void SetlightColor(const Vec3 & rhs) = 0;
     virtual void SetAmbientColor(const Vec3 & rhs) = 0;
+
+    virtual void AddLight(IPointLight * light) = 0;
+    virtual void RemoveLight(IPointLight * light) = 0;
   };
   IScene * GetScene();
 
