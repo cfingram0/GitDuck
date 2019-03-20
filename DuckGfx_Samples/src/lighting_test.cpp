@@ -124,6 +124,8 @@ void Lighting_Test::OnEnd() {
   m_scene->SetMainCamera(nullptr);
   m_scene->RemoveLight(m_pLight);
   m_scene->RemoveLight(m_sLight);
+  m_scene->RemoveLight(m_pLight2);
+  m_scene->RemoveLight(m_sLight2);
 }
 
 void Lighting_Test::Shutdown() {
