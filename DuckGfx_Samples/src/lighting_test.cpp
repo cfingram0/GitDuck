@@ -35,7 +35,7 @@ void Lighting_Test::Init() {
                                Quaternion(tag::Identity{}),
                                Vec3(0, -2, -5));
 
-  m_scene->SetAmbientColor(Vec3(0.2f, 0.2f, 0.2f));
+  m_scene->SetAmbientColor(Vec3(0.1f, 0.1f, 0.1f));
   m_scene->SetLightDir(Vec3(1, 1, 0));
   m_scene->SetlightColor(Vec3(0.390f, 0.42f, 0.45f));
 
@@ -104,6 +104,8 @@ void Lighting_Test::OnEnd() {
   m_scene->RemoveModel(m_triangle);
   m_scene->RemoveModel(m_model2);
   m_scene->SetMainCamera(nullptr);
+  m_scene->RemoveLight(m_pLight);
+  m_scene->RemoveLight(m_sLight);
 }
 
 void Lighting_Test::Shutdown() {
@@ -119,4 +121,8 @@ void Lighting_Test::Shutdown() {
 
   duckGfx::IMaterial::Destroy(m_material);
   m_material = nullptr;
+
+  duckGfx::IPointLight::Destroy(m_pLight);
+  duckGfx::ISpotLight::Destroy(m_sLight);
+
 }
