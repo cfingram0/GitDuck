@@ -135,6 +135,8 @@ public:
   //scalar division
   Vec4 operator/ (float rhs) const;
   Vec4 & operator/= (float rhs);
+
+  Vec3 xyz() const;
 };
 
 class Matrix4;

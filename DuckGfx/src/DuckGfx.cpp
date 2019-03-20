@@ -312,9 +312,16 @@ namespace duckGfx {
     globalContext.lightingDataBuffer.lightColor = Vec4(globalContext.theScene.m_lightColor, 1);
     globalContext.lightingDataBuffer.lightDir = Vec4(globalContext.theScene.m_lightDirection, 0);
     globalContext.lightingDataBuffer.ambient = Vec4(globalContext.theScene.m_ambientColor, 1);
+    
     globalContext.lightingDataBuffer.pointPos = Vec4(globalContext.theScene.m_pointLights[0]->m_position, 1);
     globalContext.lightingDataBuffer.pointColor = Vec4(globalContext.theScene.m_pointLights[0]->m_color, globalContext.theScene.m_pointLights[0]->m_intensity);
 
+    globalContext.lightingDataBuffer.spotPos = globalContext.theScene.m_spotLights[0]->m_position;
+    globalContext.lightingDataBuffer.spotDirection = globalContext.theScene.m_spotLights[0]->m_direction;
+    globalContext.lightingDataBuffer.spotColor = globalContext.theScene.m_spotLights[0]->m_color;
+    globalContext.lightingDataBuffer.spotIntensity = globalContext.theScene.m_spotLights[0]->m_intensity;
+    globalContext.lightingDataBuffer.spotCosInnerAngle = globalContext.theScene.m_spotLights[0]->m_cosInnerAngle;
+    globalContext.lightingDataBuffer.spotCosOuterAngle = globalContext.theScene.m_spotLights[0]->m_cosOuterAngle;
 
     globalContext.pImmediateContext->Map(globalContext.lightingDataCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
     memcpy(passCb.pData, globalContext.lightingDataBuffer.data, sizeof(DuckContext::LightingData));

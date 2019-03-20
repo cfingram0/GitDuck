@@ -220,6 +220,27 @@ namespace duckGfx {
     Vec3 m_color = {1, 1, 1};
   };
 
+  class SpotLight : public ISpotLight {
+  public:
+    SpotLight() {
+      m_cosInnerAngle = std::cos((60.0f * 3.14f) / 180.0f);
+      m_cosOuterAngle = std::cos((60.0f * 3.14f) / 180.0f);
+    }
+
+    void SetDirection(const Vec3 & dir) override;
+    void SetPosition(const Vec3 & pos) override;
+    void SetColor(const Vec3 & color) override;
+    void SetIntensity(float arg) override;
+    void SetAngle(float innerAngleDeg, float outerAngleDeg) override;
+
+    Vec3 m_position = tag::Zero{};
+    Vec3 m_direction = { 0.0f, -1.0f, 0.0f };
+    Vec3 m_color = {1, 1, 1};
+
+    float m_intensity = 1;
+    float m_cosInnerAngle;
+    float m_cosOuterAngle;;
+  };
 
   class Scene : public IScene {
   public:
@@ -231,6 +252,7 @@ namespace duckGfx {
     Vec3 m_ambientColor = { 0,0,0 };
 
     std::vector<PointLight*> m_pointLights;
+    std::vector<SpotLight*> m_spotLights;
 
     void AddModel(IModel * model) override;
     void RemoveModel(IModel * model) override;
@@ -243,6 +265,9 @@ namespace duckGfx {
 
     void AddLight(IPointLight * light) override;
     void RemoveLight(IPointLight * light) override;
+
+    void AddLight(ISpotLight * light) override;
+    void RemoveLight(ISpotLight * light) override;
   };
 
   struct DuckContext {
@@ -266,8 +291,15 @@ namespace duckGfx {
 
           Vec4 pointPos;
           Vec4 pointColor;
+
+          Vec3 spotPos;
+          float spotCosInnerAngle;
+          Vec3 spotDirection;
+          float spotCosOuterAngle;
+          Vec3 spotColor;
+          float spotIntensity;
         };
-        float data[24] = {0};
+        float data[36] = {0};
       };
     } lightingDataBuffer;
     ID3D11Buffer * lightingDataCb = nullptr;

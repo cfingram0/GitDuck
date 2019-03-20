@@ -156,6 +156,10 @@ Vec4 & Vec4::operator/= (float rhs) {
   return *this;
 }
 
+Vec3 Vec4::xyz() const {
+  return Vec3(x, y, z);
+}
+
 
 Quaternion::Quaternion(float RadAngle, const Vec4& Axis)
 : Quaternion(RadAngle, Vec3(Axis.x, Axis.y, Axis.z)){

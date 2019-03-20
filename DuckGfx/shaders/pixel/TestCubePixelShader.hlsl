@@ -18,6 +18,10 @@ cbuffer LIGHTING_DATA : register(b1) {
 
   float4 pointPos;
   float4 pointColor;
+
+  float4 spotPos; // w is inner angle
+  float4 spotDir; // w is outer angle
+  float4 spotColor; // w is intensity
 }
 
 float4 main(VS_Output input) : SV_TARGET
@@ -29,35 +33,69 @@ float4 main(VS_Output input) : SV_TARGET
   float3 totalDiffuse = float3(0, 0, 0);
 
   //directional light
-  float dirDiffuseDot = dot(lightDir.xyz, n);
-  float3 dirDiffuse = dirDiffuseDot > 0 ? dirDiffuseDot : 0;
-  totalDiffuse += dirDiffuse * lightColor.xyz;
-  
-  float3 dirReflected = reflect(-lightDir, n);
-  float dirSpecDot = dot(toView, dirReflected);
-  float dirSpec = dirSpecDot > 0 ? dirSpecDot : 0;
-  dirSpec = pow(dirSpec, roughness);
-
-  totalSpec += dirSpec * lightColor.xyz;
-
+  {
+    float dirDiffuseDot = dot(lightDir.xyz, n);
+    float3 dirDiffuse = dirDiffuseDot > 0 ? dirDiffuseDot : 0;
+    totalDiffuse += dirDiffuse * lightColor.xyz;
+    
+    float3 dirReflected = reflect(-lightDir.xyz, n);
+    float dirSpecDot = dot(toView, dirReflected);
+    float dirSpec = dirSpecDot > 0 ? dirSpecDot : 0;
+    dirSpec = pow(dirSpec, roughness);
+    totalSpec += dirSpec * lightColor.xyz;
+  }
 
   // point light
-  float3 toPoint = pointPos.xyz - input.wPosition.xyz;
-  float toPointLenSq = dot(toPoint, toPoint);
-  toPointLenSq = max(toPointLenSq, 0.0001f);
-  toPoint = normalize(toPoint);
-  float pIntens = pointColor.w / (toPointLenSq);
+  {
+    float3 toPoint = pointPos.xyz - input.wPosition.xyz;
+    float toPointLenSq = dot(toPoint, toPoint);
+    toPointLenSq = max(toPointLenSq, 0.0001f);
+    toPoint = normalize(toPoint);
+    float pIntens = pointColor.w / (toPointLenSq);
+    
+    float3 pDiffuseDot = dot(toPoint, n);
+    float3 pDiffuse = pDiffuseDot > 0 ? pDiffuseDot : 0;
+    totalDiffuse += pIntens * pDiffuse * pointColor.xyz;
+    
+    float3 pReflected = reflect(-toPoint, n);
+    float pSpecDot = dot(toView, pReflected);
+    float pSpec = pSpecDot > 0 ? pSpecDot : 0;
+    pSpec = pow(pSpec, roughness);
+    totalSpec += pIntens * pSpec * pointColor.xyz;
+  }
 
-  float3 pDiffuseDot = dot(toPoint, n);
-  float3 pDiffuse = pDiffuseDot > 0 ? pDiffuseDot : 0;
-  totalDiffuse += pIntens * pDiffuse * pointColor;
-  
-  float3 pReflected = reflect(-toPoint, n);
-  float pSpecDot = dot(toView, pReflected);
-  float pSpec = pSpecDot > 0 ? pSpecDot : 0;
-  pSpec = pow(pSpec, roughness);
+  // spot light 
+  {
+    float3 toSpot = spotPos.xyz - input.wPosition.xyz;
+    float toSpotLenSq = dot(toSpot, toSpot);
+    toSpotLenSq = max(toSpotLenSq, 0.0001f);
+    toSpot = normalize(toSpot);
+    float sIntens = spotColor.w / toSpotLenSq;
 
-  totalSpec += pIntens * pSpec * pointColor;
+    float cosAngle = dot(spotDir.xyz, -toSpot);
+    float angleM = 1.0f;
+    if (cosAngle > spotPos.w) {
+      angleM = 1;
+    }
+    else if (cosAngle < spotDir.w) {
+      angleM = 0;
+    }
+    else {
+      angleM = (cosAngle - spotDir.w) / (spotPos.w - spotDir.w);
+    }
+    
+
+    float3 sDiffuseDot = dot(toSpot, n);
+    float3 sDiffuse = sDiffuseDot > 0 ? sDiffuseDot : 0;
+    totalDiffuse += sIntens * angleM * sDiffuse * spotColor.xyz;
+
+    float3 sReflected = normalize(reflect(-toSpot, n));
+    float sSpecDot = dot(toView, sReflected);
+    float sSpec = sSpecDot > 0 ? sSpecDot : 0;
+    sSpec = pow(sSpec, roughness);
+    totalSpec += sIntens * angleM * sSpec * spotColor.xyz;
+  }
+
  
   return float4((totalSpec + totalDiffuse + ambient.xyz) * color.xyz, 1);
 }

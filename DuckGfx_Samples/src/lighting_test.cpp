@@ -41,8 +41,15 @@ void Lighting_Test::Init() {
 
   m_pLight = duckGfx::IPointLight::Create();
   m_pLight->SetColor(Vec3(1.0f, 0.57f, 0.16f));
-  m_pLight->SetIntensity(1.0f);
+  m_pLight->SetIntensity(2.0f);
   m_pLight->SetPosition(Vec3(-2, 0, -5));
+
+  m_sLight = duckGfx::ISpotLight::Create();
+  m_sLight->SetColor(Vec3(1.0f, 1.0f, 1.0f));
+  m_sLight->SetPosition(Vec3(1.0f, 1.0f, -5.0f));
+  m_sLight->SetDirection(Vec3(0, -1, 0));
+  m_sLight->SetAngle(35.0f, 40.0f);
+  m_sLight->SetIntensity(1.0f);
 
   m_angle = 0;
 }
@@ -52,12 +59,18 @@ void Lighting_Test::OnStart() {
   m_scene->AddModel(m_model2);
   m_scene->SetMainCamera(m_camera);
   m_scene->AddLight(m_pLight);
+  m_scene->AddLight(m_sLight);
 }
 
 void Lighting_Test::Update(float dt) {
   // rotate the triangle
-  m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, 0));
-  m_angle += 30.0f * dt;
+  m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, .2));
+  m_angle += 40.0f * dt;
+
+  Quaternion rotate(std::sin(2 * m_angle * 3.14f / 180.0f), Vec3(1, 0, 1));
+  Vec4 newRot = rotate.RotateVec(Vec4(0, -1, 0, 0));
+
+  m_sLight->SetDirection(newRot.xyz());
 
   Vec3 offset{ tag::Zero{} };
   if (input::IsPressed(Key::W)) {
