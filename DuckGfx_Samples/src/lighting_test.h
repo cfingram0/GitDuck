@@ -23,6 +23,9 @@ class Lighting_Test : public ISample {
   duckGfx::IPointLight * m_pLight = nullptr;
   duckGfx::ISpotLight * m_sLight = nullptr;
 
+  duckGfx::IPointLight * m_pLight2 = nullptr;
+  duckGfx::ISpotLight * m_sLight2 = nullptr;
+
   float m_angle = 0;
   TransformSRT m_modelTrans{ tag::NoInit{} };
 };

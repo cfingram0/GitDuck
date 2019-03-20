@@ -289,17 +289,27 @@ namespace duckGfx {
           Vec4 lightColor;
           Vec4 ambient;
 
-          Vec4 pointPos;
-          Vec4 pointColor;
+          uint32_t numLights[4];
 
-          Vec3 spotPos;
-          float spotCosInnerAngle;
-          Vec3 spotDirection;
-          float spotCosOuterAngle;
-          Vec3 spotColor;
-          float spotIntensity;
+          Vec4 pointPos[8];
+          Vec4 pointColor[8];
+
+          struct {
+            Vec3 spotPos;
+            float spotCosInnerAngle;
+          } spotPos[8];
+
+          struct {
+            Vec3 spotDirection;
+            float spotCosOuterAngle;
+          } spotDir[8];
+
+          struct {
+            Vec3 spotColor;
+            float spotIntensity;
+          } spotInten[8];
         };
-        float data[36] = {0};
+        float data[180] = {0};
       };
     } lightingDataBuffer;
     ID3D11Buffer * lightingDataCb = nullptr;

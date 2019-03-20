@@ -16,17 +16,18 @@ cbuffer LIGHTING_DATA : register(b1) {
   float4 lightColor;
   float4 ambient;
 
-  float4 pointPos;
-  float4 pointColor;
+  uint4  numLights; // x is point lights, y is spot lights
+  float4 pointPos[8];
+  float4 pointColor[8];
 
-  float4 spotPos; // w is inner angle
-  float4 spotDir; // w is outer angle
-  float4 spotColor; // w is intensity
+  float4 spotPos[8]; // w is inner angle
+  float4 spotDir[8]; // w is outer angle
+  float4 spotColor[8]; // w is intensity
 }
 
 float4 main(VS_Output input) : SV_TARGET
 {
-  float gamma = 2.2f;
+  const float gamma = 2.2f;
 
   float3 n = normalize(input.Normal.xyz);
   float3 toView = normalize(cameraWorldPos.xyz - input.wPosition.xyz);
@@ -50,14 +51,14 @@ float4 main(VS_Output input) : SV_TARGET
   }
 
   // point light
-  {
-    float3 linPointColor = pow(pointColor.xyz, gamma);
+  for (uint i = 0; i < numLights.x && i < 8; ++i) {
+    float3 linPointColor = pow(pointColor[i].xyz, gamma);
 
-    float3 toPoint = pointPos.xyz - input.wPosition.xyz;
+    float3 toPoint = pointPos[i].xyz - input.wPosition.xyz;
     float toPointLenSq = dot(toPoint, toPoint);
     toPointLenSq = max(toPointLenSq, 0.0001f);
     toPoint = normalize(toPoint);
-    float pIntens = pointColor.w / (toPointLenSq);
+    float pIntens = pointColor[i].w / (toPointLenSq);
     
     float3 pDiffuseDot = dot(toPoint, n);
     float3 pDiffuse = pDiffuseDot > 0 ? pDiffuseDot : 0;
@@ -71,25 +72,25 @@ float4 main(VS_Output input) : SV_TARGET
   }
 
   // spot light 
-  {
-    float3 linSpotColor = pow(spotColor.xyz, gamma);
+  for (uint j = 0; j < numLights.y && j < 8; ++j) {
+    float3 linSpotColor = pow(spotColor[j].xyz, gamma);
 
-    float3 toSpot = spotPos.xyz - input.wPosition.xyz;
+    float3 toSpot = spotPos[j].xyz - input.wPosition.xyz;
     float toSpotLenSq = dot(toSpot, toSpot);
     toSpotLenSq = max(toSpotLenSq, 0.0001f);
     toSpot = normalize(toSpot);
-    float sIntens = spotColor.w / toSpotLenSq;
+    float sIntens = spotColor[j].w / toSpotLenSq;
 
-    float cosAngle = dot(spotDir.xyz, -toSpot);
+    float cosAngle = dot(spotDir[j].xyz, -toSpot);
     float angleM = 1.0f;
-    if (cosAngle > spotPos.w) {
+    if (cosAngle > spotPos[j].w) {
       angleM = 1;
     }
-    else if (cosAngle < spotDir.w) {
+    else if (cosAngle < spotDir[j].w) {
       angleM = 0;
     }
     else {
-      angleM = (cosAngle - spotDir.w) / (spotPos.w - spotDir.w);
+      angleM = (cosAngle - spotDir[j].w) / (spotPos[j].w - spotDir[j].w);
     }
     
 
