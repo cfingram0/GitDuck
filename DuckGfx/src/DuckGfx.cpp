@@ -191,6 +191,43 @@ namespace duckGfx {
   }
   
 
+  static void UpdateLightingCb(Scene * theScene, DuckContext::LightingData * outBuffer) {
+    assert(theScene && outBuffer);
+
+    if (theScene->m_mainCamera) {
+      Vec3 camTrans = theScene->m_mainCamera->m_transform.translation;
+      outBuffer->cameraPos = Vec4(camTrans, 1);;
+    }
+    else {
+      outBuffer->cameraPos = Vec4(0, 0, 0, 1);
+    }
+
+    outBuffer->lightColor = Vec4(theScene->m_lightColor, 1);
+    outBuffer->lightDir = Vec4(theScene->m_lightDirection, 0);
+    outBuffer->ambient = Vec4(theScene->m_ambientColor, 1);
+
+    uint32_t numPointLights = theScene->m_pointLights.size() > 8 ? 8 : (uint32_t)theScene->m_pointLights.size();
+    outBuffer->numLights[0] = numPointLights;
+    for (uint32_t i = 0; i < numPointLights; ++i) {
+      outBuffer->pointPos[i] = Vec4(theScene->m_pointLights[i]->m_position, 1);
+      outBuffer->pointColor[i] = Vec4(theScene->m_pointLights[i]->m_color, theScene->m_pointLights[i]->m_intensity);
+    }
+
+    uint32_t numSpotLights = theScene->m_spotLights.size() > 8 ? 8 : (uint32_t)theScene->m_spotLights.size();
+    outBuffer->numLights[1] = numSpotLights;
+    for (uint32_t i = 0; i < numSpotLights; ++i) {
+      outBuffer->spotPos[i].spotPos = theScene->m_spotLights[i]->m_position;
+      outBuffer->spotPos[i].spotCosInnerAngle = theScene->m_spotLights[i]->m_cosInnerAngle;
+
+      outBuffer->spotDir[i].spotDirection = theScene->m_spotLights[i]->m_direction;
+      outBuffer->spotDir[i].spotCosOuterAngle = theScene->m_spotLights[i]->m_cosOuterAngle;
+
+      outBuffer->spotInten[i].spotColor = theScene->m_spotLights[i]->m_color;
+      outBuffer->spotInten[i].spotIntensity = theScene->m_spotLights[i]->m_intensity;
+    }
+  }
+
+
   bool Init(HWND windowHandle, uint32_t width, uint32_t height) {
     IDXGIAdapter1 * chosenAdaptor = nullptr;
     if (!PickAdaptor(&chosenAdaptor)) {
@@ -303,43 +340,12 @@ namespace duckGfx {
     globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
 
     // set up lighting constant buffer
-    if (globalContext.theScene.m_mainCamera) {
-      Vec3 camTrans = globalContext.theScene.m_mainCamera->m_transform.translation;
-      globalContext.lightingDataBuffer.cameraPos = Vec4(camTrans, 1);;
-    }
-    else {
-      globalContext.lightingDataBuffer.cameraPos = Vec4(0, 0, 0, 1);
-    }
-
-    globalContext.lightingDataBuffer.lightColor = Vec4(globalContext.theScene.m_lightColor, 1);
-    globalContext.lightingDataBuffer.lightDir = Vec4(globalContext.theScene.m_lightDirection, 0);
-    globalContext.lightingDataBuffer.ambient = Vec4(globalContext.theScene.m_ambientColor, 1);
-    
-    uint32_t numPointLights = globalContext.theScene.m_pointLights.size() > 8 ? 8 : globalContext.theScene.m_pointLights.size();
-    globalContext.lightingDataBuffer.numLights[0] = numPointLights;
-    for (uint32_t i = 0; i < numPointLights; ++i) {
-      globalContext.lightingDataBuffer.pointPos[i] = Vec4(globalContext.theScene.m_pointLights[i]->m_position, 1);
-      globalContext.lightingDataBuffer.pointColor[i] = Vec4(globalContext.theScene.m_pointLights[i]->m_color, globalContext.theScene.m_pointLights[0]->m_intensity);
-    }
-
-    uint32_t numSpotLights = globalContext.theScene.m_spotLights.size() > 8 ? 8 : globalContext.theScene.m_spotLights.size();
-    globalContext.lightingDataBuffer.numLights[1] = numSpotLights;
-    for (uint32_t i = 0; i < numSpotLights; ++i) {
-      globalContext.lightingDataBuffer.spotPos[i].spotPos = globalContext.theScene.m_spotLights[i]->m_position;
-      globalContext.lightingDataBuffer.spotPos[i].spotCosInnerAngle = globalContext.theScene.m_spotLights[i]->m_cosInnerAngle;
-
-      globalContext.lightingDataBuffer.spotDir[i].spotDirection = globalContext.theScene.m_spotLights[i]->m_direction;
-      globalContext.lightingDataBuffer.spotDir[i].spotCosOuterAngle = globalContext.theScene.m_spotLights[i]->m_cosOuterAngle;
-
-      globalContext.lightingDataBuffer.spotInten[i].spotColor = globalContext.theScene.m_spotLights[i]->m_color;
-      globalContext.lightingDataBuffer.spotInten[i].spotIntensity = globalContext.theScene.m_spotLights[i]->m_intensity;
-    }
+    UpdateLightingCb(&globalContext.theScene, &globalContext.lightingDataBuffer);
 
     globalContext.pImmediateContext->Map(globalContext.lightingDataCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
     memcpy(passCb.pData, globalContext.lightingDataBuffer.data, sizeof(DuckContext::LightingData));
     globalContext.pImmediateContext->Unmap(globalContext.lightingDataCb, 0);
     globalContext.pImmediateContext->PSSetConstantBuffers(1, 1, &globalContext.lightingDataCb);
-
 
 
     for (uint32_t modelIter = 0; modelIter < globalContext.theScene.m_models.size(); ++modelIter) {
@@ -377,6 +383,8 @@ namespace duckGfx {
     globalContext.pImmediateContext->Release();
     globalContext.pDevice->Release();
     globalContext.pSwapChain->Release();
+
+    globalContext.lightingDataCb->Release();
 
     delete globalContext.pBackBufferRt;
     globalContext.pBackBufferRt = nullptr;
