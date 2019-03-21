@@ -92,6 +92,7 @@ float4 main(VS_Output input) : SV_TARGET
     else {
       angleM = (cosAngle - spotDir[j].w) / (spotPos[j].w - spotDir[j].w);
     }
+    angleM = max(angleM, 0);
     
 
     float3 sDiffuseDot = dot(toSpot, n);

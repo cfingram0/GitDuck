@@ -11,6 +11,7 @@ void Lighting_Test::Init() {
                  Vec3(0, 0, -5));
 
   m_material = duckGfx::GenerateDebugCubeMaterial();
+  m_lightMaterial = duckGfx::GenerateDebugDrawMaterial();
 
   m_matInst = duckGfx::IMaterialInstance::Create(m_material);
   m_matInst->SetParameter("color", Vec4(1, 0, 0, 1));
@@ -42,13 +43,24 @@ void Lighting_Test::Init() {
   m_pLight = duckGfx::IPointLight::Create();
   m_pLight->SetColor(Vec3(1.0f, 0.57f, 0.16f));
   m_pLight->SetIntensity(2.0f);
-  m_pLight->SetPosition(Vec3(-2, 0, -5));
+  m_pLight->SetPosition(Vec3(-2, -.5f, -5.0f));
 
+  m_pLightModel = duckGfx::GenerateDebugCubeModel();
+  m_pLightModel->SetTransform(TransformSRT(Vec3(0.2f, 0.2f, 0.2f), Quaternion(tag::Identity{}), Vec3(-2, -.5, -5)));
+  m_pLightMat = duckGfx::IMaterialInstance::Create(m_lightMaterial);
+  m_pLightMat->SetParameter("color", Vec4(1.0f, 0.57f, 0.16f, 1.0f));
+  m_pLightModel->SetMaterialInstance(m_pLightMat);
 
   m_pLight2 = duckGfx::IPointLight::Create();
   m_pLight2->SetColor(Vec3(0.16f, 0.57f, 1.0f));
   m_pLight2->SetIntensity(3.0f);
   m_pLight2->SetPosition(Vec3(-2, 0, -2));
+
+  m_pLight2Model = duckGfx::GenerateDebugCubeModel();
+  m_pLight2Model->SetTransform(TransformSRT(Vec3(0.3f, 0.3f, 0.3f), Quaternion(tag::Identity{}), Vec3(-2, 0, -2)));
+  m_pLight2Mat = duckGfx::IMaterialInstance::Create(m_lightMaterial);
+  m_pLight2Mat->SetParameter("color", Vec4(0.16f, 0.57f, 1.0f, 1.0f));
+  m_pLight2Model->SetMaterialInstance(m_pLight2Mat);
 
   m_sLight = duckGfx::ISpotLight::Create();
   m_sLight->SetColor(Vec3(1.0f, 1.0f, 1.0f));
@@ -57,12 +69,30 @@ void Lighting_Test::Init() {
   m_sLight->SetAngle(35.0f, 40.0f);
   m_sLight->SetIntensity(1.0f);
 
+  m_sLightTrans = TransformSRT(Vec3(0.1f, 0.2f, 0.1f), Quaternion(tag::Identity{}), Vec3(1.0f, 1.0f, -5.0f));
+  m_sLightModel = duckGfx::GenerateDebugCubeModel();
+  m_sLightModel->SetTransform(m_sLightTrans);
+
+  m_sLightMat = duckGfx::IMaterialInstance::Create(m_lightMaterial);
+  m_sLightModel->SetMaterialInstance(m_sLightMat);
+  m_sLightMat->SetParameter("color", Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
   m_sLight2 = duckGfx::ISpotLight::Create();
   m_sLight2->SetColor(Vec3(1.0f, 1.0f, 1.0f));
   m_sLight2->SetPosition(Vec3(1.0f, 1.0f, -5.0f));
   m_sLight2->SetDirection(Vec3(0, -1, 0));
   m_sLight2->SetAngle(35.0f, 40.0f);
   m_sLight2->SetIntensity(1.0f);
+
+
+  m_sLight2Trans = TransformSRT(Vec3(0.1f, 0.2f, 0.1f), Quaternion(tag::Identity{}), Vec3(1.0f, 1.0f, -5.0f));
+  m_sLight2Model = duckGfx::GenerateDebugCubeModel();
+  m_sLight2Model->SetTransform(m_sLight2Trans);
+
+  m_sLight2Mat = duckGfx::IMaterialInstance::Create(m_lightMaterial);
+  m_sLight2Model->SetMaterialInstance(m_sLight2Mat);
+  m_sLight2Mat->SetParameter("color", Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+
 
   m_angle = 0;
 }
@@ -72,9 +102,17 @@ void Lighting_Test::OnStart() {
   m_scene->AddModel(m_model2);
   m_scene->SetMainCamera(m_camera);
   m_scene->AddLight(m_pLight);
-  m_scene->AddLight(m_sLight);
+  m_scene->AddModel(m_pLightModel);
+
+
   m_scene->AddLight(m_pLight2);
+  m_scene->AddModel(m_pLight2Model);
+
+  m_scene->AddLight(m_sLight);
+  m_scene->AddModel(m_sLightModel);
+
   m_scene->AddLight(m_sLight2);
+  m_scene->AddModel(m_sLight2Model);
 }
 
 void Lighting_Test::Update(float dt) {
@@ -85,10 +123,14 @@ void Lighting_Test::Update(float dt) {
   Quaternion rotate(std::sin(2 * m_angle * 3.14f / 180.0f), Vec3(1, 0, 1));
   Vec4 newRot = rotate.RotateVec(Vec4(0, -1, 0, 0));
   m_sLight->SetDirection(newRot.xyz());
+  m_sLightTrans.rotation = rotate;
+  m_sLightModel->SetTransform(m_sLightTrans);
 
   Quaternion rotate2(std::sin(2 * m_angle * 3.14f / 180.0f), Vec3(1, 0, 0));
   newRot = rotate2.RotateVec(Vec4(0, -1, 0, 0));
   m_sLight2->SetDirection(newRot.xyz());
+  m_sLightTrans.rotation = rotate2;
+  m_sLight2Model->SetTransform(m_sLightTrans);
 
   Vec3 offset{ tag::Zero{} };
   if (input::IsPressed(Key::W)) {
@@ -126,6 +168,10 @@ void Lighting_Test::OnEnd() {
   m_scene->RemoveLight(m_sLight);
   m_scene->RemoveLight(m_pLight2);
   m_scene->RemoveLight(m_sLight2);
+  m_scene->RemoveModel(m_pLightModel);
+  m_scene->RemoveModel(m_pLight2Model);
+  m_scene->RemoveModel(m_sLightModel);
+  m_scene->RemoveModel(m_sLight2Model);
 }
 
 void Lighting_Test::Shutdown() {
@@ -142,9 +188,24 @@ void Lighting_Test::Shutdown() {
   duckGfx::IMaterial::Destroy(m_material);
   m_material = nullptr;
 
-  duckGfx::IPointLight::Destroy(m_pLight);
-  duckGfx::ISpotLight::Destroy(m_sLight);
-  duckGfx::IPointLight::Destroy(m_pLight2);
-  duckGfx::ISpotLight::Destroy(m_sLight2);
+  duckGfx::ICamera::Destroy(m_camera);
 
+  duckGfx::ISpotLight::Destroy(m_sLight);
+  duckGfx::IModel::Destroy(m_sLightModel);
+  duckGfx::IMaterialInstance::Destroy(m_sLightMat);
+
+  duckGfx::ISpotLight::Destroy(m_sLight2);
+  duckGfx::IModel::Destroy(m_sLight2Model);
+  duckGfx::IMaterialInstance::Destroy(m_sLight2Mat);
+
+  duckGfx::IPointLight::Destroy(m_pLight);
+  duckGfx::IModel::Destroy(m_pLightModel);
+  duckGfx::IMaterialInstance::Destroy(m_pLightMat);
+
+  duckGfx::IPointLight::Destroy(m_pLight2);
+  duckGfx::IModel::Destroy(m_pLight2Model);
+  duckGfx::IMaterialInstance::Destroy(m_pLight2Mat);
+
+
+  duckGfx::IMaterial::Destroy(m_lightMaterial);
 }

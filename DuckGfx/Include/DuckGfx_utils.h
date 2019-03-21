@@ -8,4 +8,6 @@ namespace duckGfx {
 
   IModel * GenerateDebugCubeModel();
   IMaterial * GenerateDebugCubeMaterial();
+
+  IMaterial * GenerateDebugDrawMaterial();
 }
