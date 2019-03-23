@@ -1,5 +1,6 @@
 #include "DuckGfx.h"
 #include "DuckGfx_internal.h"
+#include "DuckGfx_utils.h"
 
 #define DEBUG_DX
 
@@ -262,6 +263,14 @@ namespace duckGfx {
     globalContext.pDevice->CreateBuffer(&cbDesc, NULL, &globalContext.lightingDataCb);
 
     globalContext.pImmediateContext->QueryInterface(&globalContext.annotator);
+
+    //create the debug draw data
+    globalContext.debugLineMesh = new Mesh();
+    GenerateDebugLineMesh(globalContext.debugLineMesh);
+    globalContext.debugDrawMaterial = reinterpret_cast<Material*>(GenerateDebugDrawMaterial());
+    globalContext.debugMaterialInstance = new MaterialInstance(globalContext.debugDrawMaterial);
+
+
     return true;
   }
   
@@ -368,6 +377,41 @@ namespace duckGfx {
       globalContext.annotator->EndEvent();
 
     if (globalContext.annotator)
+      globalContext.annotator->BeginEvent(L"Debug Draw");
+
+    // pass 3 : debug draw (use same render target + state as color pass
+    BindMaterial(globalContext.pImmediateContext, globalContext.debugDrawMaterial, MaterialTechniqueID::kColor);
+    BindMesh(globalContext.pImmediateContext, *globalContext.debugLineMesh);
+    for (uint32_t lineIter = 0; lineIter < globalContext.theScene.m_debugLines.size(); ++lineIter) {
+      //calculate the transform
+      DebugLine & line = globalContext.theScene.m_debugLines[lineIter];
+      TransformSRT lineTransform{ tag::NoInit {} };
+      lineTransform.translation = line.p0;
+      lineTransform.scale = Vec3(Length(line.p1 - line.p0), 1, 1);
+      Vec3 v1 = Vec3(1.0f, 0, 0);
+      Vec3 v2 = Normalize(line.p1 - line.p0);
+      Vec3 axis = Cross(v1, v2);
+      if (IsEqual(axis, Vec3(tag::Zero{}))) {
+        lineTransform.rotation = Quaternion(tag::Identity{});
+      } 
+      else {
+        axis = Normalize(axis);
+        float angle = std::acos(Dot(v1, v2));
+        lineTransform.rotation = Quaternion(angle, axis);
+      }
+
+      globalContext.debugMaterialInstance->SetParameter("gTransform", lineTransform.CalcMatrix());
+      globalContext.debugMaterialInstance->SetParameter("color", Vec4(line.color, 1));
+      MapMaterialInstanceData(globalContext.pImmediateContext, globalContext.debugDrawMaterial, globalContext.debugMaterialInstance, MaterialTechniqueID::kColor);
+      globalContext.pImmediateContext->DrawIndexed(2, 0, 0);
+    }
+    globalContext.theScene.m_debugLines.clear();
+
+    if (globalContext.annotator)
+      globalContext.annotator->EndEvent();
+
+
+    if (globalContext.annotator)
       globalContext.annotator->BeginEvent(L"Swap");
     // flip the swap chain, with vsync
     globalContext.pSwapChain->Present(1, 0);
@@ -392,6 +436,11 @@ namespace duckGfx {
     globalContext.toBackbufferRS->Release();
     globalContext.toBackbufferDSS->Release();
     globalContext.toBackBufferPassCb->Release();
+
+    delete globalContext.debugLineMesh;
+    delete globalContext.debugMaterialInstance;
+    delete globalContext.debugDrawMaterial;
+
 
     globalContext.annotator->Release();
   }

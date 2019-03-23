@@ -500,4 +500,63 @@ namespace duckGfx {
 
     return mat;
   }
+
+
+  bool GenerateDebugLineMesh(Mesh * output) {
+    output->format.hasPosition = 1;
+    output->format.hasNormals = 1;
+
+    // generate vertex buffer for line
+    struct {
+      Vec3 pos;
+      Vec3 normal;
+    } vertData[] = { Vec3(0.0f, 0.0f, 0.0f), Vec3(0,0,0), Vec3(1.0f, 0.0f,  0.0f), Vec3(0,0,0)};
+
+    const uint32_t numVerts = 2;
+    const uint32_t vertSize = VertSize(output->format);
+    output->vertSize = vertSize;
+
+    D3D11_BUFFER_DESC desc;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.ByteWidth = vertSize * numVerts;
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags = 0;
+    desc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData;
+    initData.pSysMem = vertData;
+    initData.SysMemPitch = 0;
+    initData.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * vertBuffer;
+    HRESULT hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &vertBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+    output->vertBuffer = vertBuffer;
+
+    uint32_t indices[] = { 0, 1 };
+    D3D11_BUFFER_DESC desc_idx;
+    desc_idx.Usage = D3D11_USAGE_DEFAULT;
+    desc_idx.ByteWidth = sizeof(uint32_t) * 2;
+    desc_idx.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    desc_idx.CPUAccessFlags = 0;
+    desc_idx.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData_idx;
+    initData_idx.pSysMem = indices;
+    initData_idx.SysMemPitch = 0;
+    initData_idx.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * idxBuffer;
+    hr = globalContext.pDevice->CreateBuffer(&desc_idx, &initData_idx, &idxBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+
+    output->idxBuffer = idxBuffer;
+    output->idxCount = 2;
+    output->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+    return true;
+  }
 }

@@ -242,6 +242,15 @@ namespace duckGfx {
     float m_cosOuterAngle;;
   };
 
+  // debug primitives
+  struct DebugLine {
+    Vec3 p0;
+    Vec3 p1;
+    Vec3 color;
+  };
+
+  bool GenerateDebugLineMesh(Mesh * output);
+
   class Scene : public IScene {
   public:
     std::vector<Model*> m_models;
@@ -253,6 +262,7 @@ namespace duckGfx {
 
     std::vector<PointLight*> m_pointLights;
     std::vector<SpotLight*> m_spotLights;
+    std::vector<DebugLine> m_debugLines;
 
     void AddModel(IModel * model) override;
     void RemoveModel(IModel * model) override;
@@ -268,6 +278,8 @@ namespace duckGfx {
 
     void AddLight(ISpotLight * light) override;
     void RemoveLight(ISpotLight * light) override;
+
+    void DrawDebugLine(const Vec3 & a, const Vec3 & b, const Vec3 & color) override;
   };
 
   struct DuckContext {
@@ -314,15 +326,21 @@ namespace duckGfx {
     } lightingDataBuffer;
     ID3D11Buffer * lightingDataCb = nullptr;
 
-    // render target
-    RenderTarget2D * pBackBufferRt = nullptr;
-
+    
     // To backbuffer Render state
+    RenderTarget2D * pBackBufferRt = nullptr;
     ID3D11RasterizerState * toBackbufferRS = nullptr;
     ID3D11DepthStencilState * toBackbufferDSS = nullptr;
     ID3D11Buffer * toBackBufferPassCb = nullptr;
 
+
+    // debug data
     ID3DUserDefinedAnnotation * annotator = nullptr;
+
+    //debug draw data
+    Mesh * debugLineMesh = nullptr;
+    Material * debugDrawMaterial = nullptr;
+    MaterialInstance * debugMaterialInstance = nullptr;
 
     Scene theScene;
   };

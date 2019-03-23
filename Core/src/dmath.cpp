@@ -409,6 +409,9 @@ Quaternion Normalize(const Quaternion & a) {
   return a / Length(a);
 }
 
+bool IsEqual(const Vec3 & a, const Vec3 & b, float epsilon) {
+  return FloatIsEqual(a.x, b.x, epsilon) && FloatIsEqual(a.y, b.y, epsilon) && FloatIsEqual(a.z, b.z, epsilon);
+}
 
 Matrix4& Matrix4::operator= (const Matrix4& rhs) {
   for (int32_t i = 0; i < 16; ++i) {

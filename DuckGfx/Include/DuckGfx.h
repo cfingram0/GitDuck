@@ -90,7 +90,11 @@ namespace duckGfx {
 
     virtual void AddLight(ISpotLight * light) = 0;
     virtual void RemoveLight(ISpotLight * light) = 0;
+
+    virtual void DrawDebugLine(const Vec3 & a, const Vec3 & b, const Vec3 & color) = 0;
   };
   IScene * GetScene();
+
+
 
 }

@@ -6,6 +6,7 @@
 #include "sample_test.h"
 #include "cube_test.h"
 #include "lighting_test.h"
+#include "debug_draw_test.h"
 
 #include "input.h"
 
@@ -59,7 +60,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
   samples.push_back(new Sample_Test());
   samples.push_back(new Cube_Test());
   samples.push_back(new Lighting_Test());
-  desiredSample = 2;
+  samples.push_back(new DebugDraw_Test());
+  desiredSample = 3;
 
   //single threaded render loop
   MSG msg;
@@ -96,6 +98,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     if (input::IsTriggered(Key::NUM_3)) {
       desiredSample = 2;
+    }
+    if (input::IsTriggered(Key::NUM_4)) {
+      desiredSample = 3;
     }
     if (input::IsTriggered(Key::ESCAPE)) {
       running = false;

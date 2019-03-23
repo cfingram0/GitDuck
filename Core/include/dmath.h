@@ -333,3 +333,5 @@ Vec2 Normalize(const Vec2 & a);
 Vec3 Normalize(const Vec3 & a);
 Vec4 Normalize(const Vec4 & a);
 Quaternion Normalize(const Quaternion & a);
+
+bool IsEqual(const Vec3 & a, const Vec3 & b, float epsilon = kEpsilon);

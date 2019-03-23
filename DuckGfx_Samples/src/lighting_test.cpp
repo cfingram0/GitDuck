@@ -117,7 +117,7 @@ void Lighting_Test::OnStart() {
 
 void Lighting_Test::Update(float dt) {
   // rotate the triangle
-  m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, .2f));
+  m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(0.5f, 1, .2f));
   m_angle += 40.0f * dt;
 
   Quaternion rotate(std::sin(2 * m_angle * 3.14f / 180.0f), Vec3(1, 0, 1));

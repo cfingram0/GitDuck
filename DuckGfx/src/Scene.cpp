@@ -68,6 +68,10 @@ namespace duckGfx {
     }
   }
 
+  void Scene::DrawDebugLine(const Vec3 & a, const Vec3 & b, const Vec3 & color) {
+    m_debugLines.push_back({ a, b, color });
+  }
+
   void Scene::SetMainCamera(ICamera * camera) {
     m_mainCamera = reinterpret_cast<Camera *>(camera);
   }
