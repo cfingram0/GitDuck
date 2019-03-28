@@ -392,7 +392,12 @@ namespace duckGfx {
       Vec3 v2 = Normalize(line.p1 - line.p0);
       Vec3 axis = Cross(v1, v2);
       if (IsEqual(axis, Vec3(tag::Zero{}))) {
-        lineTransform.rotation = Quaternion(tag::Identity{});
+        if (Dot(v1, v2) >= 0) {
+          lineTransform.rotation = Quaternion(tag::Identity{});
+        }
+        else {
+          lineTransform.rotation = Quaternion(3.14159f, Vec4(0, 1, 0, 0));
+        }
       } 
       else {
         axis = Normalize(axis);

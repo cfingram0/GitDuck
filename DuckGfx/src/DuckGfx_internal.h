@@ -19,6 +19,8 @@ namespace duckGfx {
     void SetTransform(const TransformRT & arg) override;
     void SetPerspective(float wFov, float aspectRatio, float nearPlane, float farPlane) override;
 
+    Vec3 GetLookAt();
+
     TransformRT m_transform{ tag::Identity{} };
     Matrix4 m_proj{ tag::NoInit{} };
     Matrix4 m_viewProj{ tag::NoInit{} };
@@ -280,6 +282,10 @@ namespace duckGfx {
     void RemoveLight(ISpotLight * light) override;
 
     void DrawDebugLine(const Vec3 & a, const Vec3 & b, const Vec3 & color) override;
+    void DrawDebugSphere(const Vec3 & pos, float r, const Vec3 & color) override;
+    void DrawDebugAABB(const Vec3 & min, const Vec3 & max, const Vec3 & color) override;
+    void DrawDebugOBB(TransformSRT & transform, const Vec3 & color) override;
+    void DrawDebugCone(const Vec3 & tip, float halfAngle, float length, const Vec3 & direction, const Vec3 & color) override;
   };
 
   struct DuckContext {

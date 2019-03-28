@@ -160,7 +160,7 @@ public:
   Quaternion(float eulerX, float eulerY, float eulerZ);
   
   Quaternion(tag::NoInit) {}
-  Quaternion(tag::Identity) :s(0), x(0), y(0), z(0) {}
+  Quaternion(tag::Identity) :s(1), x(0), y(0), z(0) {}
   Quaternion(tag::Zero) :s(0), x(0), y(0), z(0) {}
 
   Quaternion operator+ (const Quaternion& rhs) const;

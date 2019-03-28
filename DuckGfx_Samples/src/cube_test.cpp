@@ -19,8 +19,9 @@ void Cube_Test::Init() {
   m_triangle->SetMaterialInstance(m_matInst);
 
   m_camera = duckGfx::ICamera::Create();
-  m_camera->SetPerspective((60.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 0.1f, 100.0f);
+  m_camera->SetPerspective((30.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 0.1f, 100.0f);
   m_cameraTrans = TransformRT{ tag::Identity{} };
+  m_cameraTrans.translation = Vec3(0, 0, 4);
   m_camera->SetTransform(m_cameraTrans);
 
 

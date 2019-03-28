@@ -92,6 +92,10 @@ namespace duckGfx {
     virtual void RemoveLight(ISpotLight * light) = 0;
 
     virtual void DrawDebugLine(const Vec3 & a, const Vec3 & b, const Vec3 & color) = 0;
+    virtual void DrawDebugSphere(const Vec3 & pos, float r, const Vec3 & color) = 0;
+    virtual void DrawDebugAABB(const Vec3 & min, const Vec3 & max, const Vec3 & color) = 0;
+    virtual void DrawDebugOBB(TransformSRT & transform, const Vec3 & color) = 0; // by default cube is 1,1,1 at origin
+    virtual void DrawDebugCone(const Vec3 & tip, float halfAngle, float length, const Vec3 & direction, const Vec3 & color) = 0;
   };
   IScene * GetScene();
 

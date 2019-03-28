@@ -24,6 +24,10 @@ namespace duckGfx {
     RefreshProjView();
   }
 
+  Vec3 Camera::GetLookAt() {
+    return m_transform.rotation.RotateVec(Vec4(0, 0, -1, 0)).xyz();
+  }
+
   void Camera::RefreshProjMatrix() {
     m_proj = Matrix4::BuildPerspProj(m_wFov, m_aspectRatio, m_near, m_far) * Matrix4::BuildScaleMatrix(Vec3(1, 1, -1));
   }

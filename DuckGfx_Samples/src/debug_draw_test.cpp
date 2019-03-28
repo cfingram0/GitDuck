@@ -8,8 +8,9 @@ void DebugDraw_Test::Init() {
   m_material = duckGfx::GenerateDebugCubeMaterial();
 
   m_camera = duckGfx::ICamera::Create();
-  m_camera->SetPerspective((60.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 0.1f, 100.0f);
+  m_camera->SetPerspective((30.0f * 3.14f) / 180.0f, 16.0f / 9.0f, 0.1f, 100.0f);
   m_cameraTrans = TransformRT{ tag::Identity{} };
+  m_cameraTrans.translation = Vec3(0, 0, 4);
   m_camera->SetTransform(m_cameraTrans);
 
   m_model2 = duckGfx::GenerateDebugCubeModel();
@@ -53,8 +54,21 @@ void DebugDraw_Test::Update(float dt) {
   if (input::IsPressed(Key::C)) {
     offset += Vec3(0, -1, 0);
   }
+  offset = m_cameraTrans.rotation.RotateVec(Vec4(offset, 0)).xyz();
+
+  float rotAngle = 0;
+  if (input::IsPressed(Key::Q)) {
+    rotAngle += 2 * (3.14) / 180.0f;
+  }
+  if (input::IsPressed(Key::E)) {
+    rotAngle -= 2 * (3.14) / 180.0f;
+  }
+
+  Quaternion rotation(rotAngle, Vec3(0, 1, 0));
+
 
   m_cameraTrans.translation += offset * 2 * dt;
+  m_cameraTrans.rotation = rotation * m_cameraTrans.rotation;
   m_camera->SetTransform(m_cameraTrans);
 
   m_model2->SetTransform(m_modelTrans2);
@@ -72,6 +86,15 @@ void DebugDraw_Test::Update(float dt) {
   Vec3 point5 = Vec3(-3 + std::cos(m_time), std::sin(m_time), -5);
   Vec3 point6 = Vec3(-3 + std::cos(m_time + 3.14f), std::sin(m_time + 3.14f), -5);
   m_scene->DrawDebugLine(point5, point6, Vec3(0, 0, 1));
+
+  m_scene->DrawDebugAABB(Vec3(3, -1, -7), Vec3(4, 0, -8), Vec3(1, 1, 0));
+
+  m_scene->DrawDebugSphere(Vec3(-3, -1.25, -4), 0.25f, Vec3(0, 1, 1));
+
+  m_scene->DrawDebugOBB(TransformSRT{ Vec3(2, 1,1), Quaternion(1.0f, Vec3(1, 1,0)), Vec3(-3, -0.5, -8)}, Vec3(1, 0, 1));
+
+  m_scene->DrawDebugCone(Vec3(0, 0, -7), 15.0f * (3.14f / 180.0f), 1.0f, Vec3(1, -1, -1), Vec3(1, 1, 1));
+  m_scene->DrawDebugCone(Vec3(1, 0, -7), 15.0f * (3.14f / 180.0f), 2.0f, Vec3(1, -1, -1), Vec3(1, 1, 1));
 }
 
 void DebugDraw_Test::OnEnd() {
