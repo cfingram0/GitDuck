@@ -106,8 +106,6 @@ float4 main(VS_Output input) : SV_TARGET
     totalSpec += sIntens * angleM * sSpec * linSpotColor;
   }
 
-  float3 finalColor = totalSpec + (totalDiffuse + ambient.xyz) * color.xyz;
-  finalColor = pow(finalColor, 1.0f / gamma);
- 
+  float3 finalColor = totalSpec + (totalDiffuse + ambient.xyz) * pow(color.xyz, gamma); 
   return float4(finalColor, 1);
 }

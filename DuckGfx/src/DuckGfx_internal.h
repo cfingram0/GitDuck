@@ -40,10 +40,12 @@ namespace duckGfx {
     uint8_t m_numColorTargets = 0;
     ID3D11Texture2D * m_colorTargets[8] = { 0 };
     ID3D11RenderTargetView * m_colorViews[8] = { 0 };
+    ID3D11ShaderResourceView * m_colorSRV[8] = { 0 };
 
     // depth target
     ID3D11Texture2D * m_depthStencil = nullptr;
     ID3D11DepthStencilView * m_depthStencilView = nullptr;
+    ID3D11ShaderResourceView * m_depthStencilSRV = nullptr;
   };
 
   void BindRenderTarget2D(ID3D11DeviceContext * context, const RenderTarget2D & rt);
@@ -250,8 +252,11 @@ namespace duckGfx {
     Vec3 p1;
     Vec3 color;
   };
-
   bool GenerateDebugLineMesh(Mesh * output);
+
+  //utils
+  bool GenerateQuad(ID3D11Device * device, Mesh * output);
+  bool CreateToBackbufferMaterial(ID3D11Device * device, Material * outMaterial);
 
   class Scene : public IScene {
   public:
@@ -332,12 +337,22 @@ namespace duckGfx {
     } lightingDataBuffer;
     ID3D11Buffer * lightingDataCb = nullptr;
 
-    
+    // main color rt
+    RenderTarget2D * pMainColorRt = nullptr;
+    ID3D11RasterizerState * toMainColorRS = nullptr;
+    ID3D11DepthStencilState * toMainColorDSS = nullptr;
+    ID3D11Buffer * toMainColorCb = nullptr;
+
     // To backbuffer Render state
     RenderTarget2D * pBackBufferRt = nullptr;
     ID3D11RasterizerState * toBackbufferRS = nullptr;
     ID3D11DepthStencilState * toBackbufferDSS = nullptr;
     ID3D11Buffer * toBackBufferPassCb = nullptr;
+
+    Mesh * backBufferQuad = nullptr;
+    Material * toBackBufferMat = nullptr;
+    MaterialInstance * toBackBufferMatInstance = nullptr;
+    ID3D11SamplerState * toBackBufferSamplerSate = nullptr;
 
 
     // debug data

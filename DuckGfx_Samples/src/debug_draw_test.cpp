@@ -58,10 +58,10 @@ void DebugDraw_Test::Update(float dt) {
 
   float rotAngle = 0;
   if (input::IsPressed(Key::Q)) {
-    rotAngle += 2 * (3.14) / 180.0f;
+    rotAngle += 1 * (3.14) / 180.0f;
   }
   if (input::IsPressed(Key::E)) {
-    rotAngle -= 2 * (3.14) / 180.0f;
+    rotAngle -= 1 * (3.14) / 180.0f;
   }
 
   Quaternion rotation(rotAngle, Vec3(0, 1, 0));

@@ -9,8 +9,8 @@ namespace duckGfx {
       Vec3 pos;
       Vec4 color;
     } vertData[] = { Vec3(-0.5f, 0.0f, 0.0f), Vec4(1.0f, 0.0f, 0.0f, 1),
-      Vec3(0.5f, 0.0f,  0.0f), Vec4(0.0f, 1.0f, 0.0f, 1.0f),
-      Vec3(0.5f, 0.5f,  0.0f), Vec4(0.0f, 0.0f, 1.0f, 1.0f) };
+                      Vec3(0.5f, 0.0f,  0.0f), Vec4(0.0f, 1.0f, 0.0f, 1.0f),
+                      Vec3(0.5f, 0.5f,  0.0f), Vec4(0.0f, 0.0f, 1.0f, 1.0f) };
 
     const uint32_t numVerts = 3;
     const uint32_t vertSize = VertSize(output->format);
@@ -559,4 +559,102 @@ namespace duckGfx {
     output->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_LINELIST;
     return true;
   }
+
+
+  bool GenerateQuad(ID3D11Device * device, Mesh * output) {
+    output->format.hasPosition = 1;
+    output->format.numUVsets = 1;
+
+    // generate vertex buffer for line
+    struct {
+      Vec3 pos;
+      Vec2 texCoord;
+    } vertData[] = { Vec3(-1.0f, -1.0f, 0.0f), Vec2(0,1), 
+                     Vec3( 1.0f, -1.0f, 0.0f), Vec2(1,1), 
+                     Vec3( 1.0f,  1.0f, 0.0f), Vec2(1,0), 
+                     Vec3(-1.0f,  1.0f, 0.0f), Vec2(0,0)};
+
+    const uint32_t numVerts = 4;
+    const uint32_t vertSize = VertSize(output->format);
+    output->vertSize = vertSize;
+
+    D3D11_BUFFER_DESC desc;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.ByteWidth = vertSize * numVerts;
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags = 0;
+    desc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData;
+    initData.pSysMem = vertData;
+    initData.SysMemPitch = 0;
+    initData.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * vertBuffer;
+    HRESULT hr = device->CreateBuffer(&desc, &initData, &vertBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+    output->vertBuffer = vertBuffer;
+
+    uint32_t indices[] = { 0, 1, 3, 1, 2, 3};
+    D3D11_BUFFER_DESC desc_idx;
+    desc_idx.Usage = D3D11_USAGE_DEFAULT;
+    desc_idx.ByteWidth = sizeof(uint32_t) * 6;
+    desc_idx.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    desc_idx.CPUAccessFlags = 0;
+    desc_idx.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData_idx;
+    initData_idx.pSysMem = indices;
+    initData_idx.SysMemPitch = 0;
+    initData_idx.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * idxBuffer;
+    hr = device->CreateBuffer(&desc_idx, &initData_idx, &idxBuffer);
+    if (FAILED(hr)) {
+      return false;
+    }
+
+    output->idxBuffer = idxBuffer;
+    output->idxCount = 6;
+    output->topology = D3D11_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    return true;
+  }
+
+  bool CreateToBackbufferMaterial(ID3D11Device * device, Material * outMaterial) {
+    outMaterial->meshVertFormat.hasPosition = 1;
+    outMaterial->meshVertFormat.numUVsets = 1;
+
+    // load the shaders
+    std::vector<uint8_t> bytes;
+    bool success = ReadAllBytes("ToBackBufferVertexShader.cso", &bytes);
+    if (!success) {
+      return false;
+    }
+
+    ID3D11VertexShader * vertShader = nullptr;
+    globalContext.pDevice->CreateVertexShader(bytes.data(), bytes.size(), nullptr, &vertShader);
+    if (!vertShader) {
+      return false;
+    }
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_vertShader = vertShader;
+
+    ID3D11InputLayout * pLayout;
+    CreateVertLayout(device, outMaterial->meshVertFormat, bytes.data(), bytes.size(), &pLayout);
+    outMaterial->inputLayout = pLayout;
+
+    ID3D11PixelShader * pixelShader;
+    success = ReadAllBytes("ToBackBufferPixelShader.cso", &bytes);
+    if (!success) {
+      return false;
+    }
+    globalContext.pDevice->CreatePixelShader(bytes.data(), bytes.size(), nullptr, &pixelShader);
+    if (!pixelShader) {
+      return false;
+    }
+    outMaterial->techniques[MaterialTechniqueID::kColor].m_pixelShader = pixelShader;
+    return true;
+  }
+
 }

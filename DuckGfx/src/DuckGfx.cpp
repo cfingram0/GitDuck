@@ -35,28 +35,9 @@ namespace duckGfx {
     output->m_numColorTargets = 1;
     //create the render target view
     hr = globalContext.pDevice->CreateRenderTargetView(output->m_colorTargets[0], NULL, output->m_colorViews);
-
-    D3D11_TEXTURE2D_DESC backBufferDesc;
-    output->m_colorTargets[0]->GetDesc(&backBufferDesc);
-
-    //create the stencil depth buffer
-    D3D11_TEXTURE2D_DESC stencilDepthDesc;
-    stencilDepthDesc.Width = backBufferDesc.Width;
-    stencilDepthDesc.Height = backBufferDesc.Height;
-    stencilDepthDesc.MipLevels = 1;
-    stencilDepthDesc.ArraySize = 1;
-    stencilDepthDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-    stencilDepthDesc.SampleDesc.Count = 1;
-    stencilDepthDesc.SampleDesc.Quality = 0;
-    stencilDepthDesc.Usage = D3D11_USAGE_DEFAULT;
-    stencilDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    stencilDepthDesc.CPUAccessFlags = 0;
-    stencilDepthDesc.MiscFlags = NULL;
-
-    globalContext.pDevice->CreateTexture2D(&stencilDepthDesc, NULL, &output->m_depthStencil);
-    globalContext.pDevice->CreateDepthStencilView(output->m_depthStencil, NULL, &output->m_depthStencilView);
-    return true;
+    return hr == S_OK;
   }
+
   static bool CreateToBackBufferRenderState(ID3D11Device * device, 
                                             ID3D11RasterizerState ** rasterizerState,
                                             ID3D11DepthStencilState ** depthStencilState, 
@@ -71,16 +52,14 @@ namespace duckGfx {
     rastDesc.DepthClipEnable = TRUE;
     rastDesc.ScissorEnable = true;
     rastDesc.MultisampleEnable = true;
-    rastDesc.AntialiasedLineEnable = false;
+    rastDesc.AntialiasedLineEnable = true;
 
     device->CreateRasterizerState(&rastDesc, rasterizerState);
 
     D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
     ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
 
-    depthStencilDesc.DepthEnable = true;
-    depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depthStencilDesc.DepthEnable = false;
     depthStencilDesc.StencilEnable = false;
 
     device->CreateDepthStencilState(&depthStencilDesc, depthStencilState);
@@ -88,7 +67,7 @@ namespace duckGfx {
 
     ID3D11Buffer * constantBuffer = NULL;
     D3D11_BUFFER_DESC cbDesc;
-    cbDesc.ByteWidth = sizeof(Matrix4);
+    cbDesc.ByteWidth = sizeof(Vec4);
     cbDesc.Usage = D3D11_USAGE_DYNAMIC;
     cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -99,6 +78,113 @@ namespace duckGfx {
 
     return (*rasterizerState) && (*depthStencilState) && (*buffer);
   }
+
+  static bool CreateMainColorPassData(ID3D11Device * device, 
+                                      uint32_t width, 
+                                      uint32_t height, 
+                                      RenderTarget2D * renderTarget, 
+                                      ID3D11RasterizerState ** rasterizerState, 
+                                      ID3D11DepthStencilState ** depthStencilState, 
+                                      ID3D11Buffer ** constantBuffer)
+  {
+
+    //create the render target
+    D3D11_TEXTURE2D_DESC colorDesc;
+    colorDesc.Width = width;
+    colorDesc.Height = height;
+    colorDesc.MipLevels = 1;
+    colorDesc.ArraySize = 1;
+    colorDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    colorDesc.SampleDesc.Count = 1;
+    colorDesc.SampleDesc.Quality = 0;
+    colorDesc.Usage = D3D11_USAGE_DEFAULT;
+    colorDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    colorDesc.CPUAccessFlags = 0;
+    colorDesc.MiscFlags = NULL;
+
+    HRESULT hr = device->CreateTexture2D(&colorDesc, nullptr, &renderTarget->m_colorTargets[0]);
+    if (hr != S_OK) {
+      return false;
+    }
+    renderTarget->m_numColorTargets = 1;
+    hr = device->CreateRenderTargetView(renderTarget->m_colorTargets[0], nullptr, &renderTarget->m_colorViews[0]);
+    if (hr != S_OK) {
+      return false;
+    }
+    hr = device->CreateShaderResourceView(renderTarget->m_colorTargets[0], nullptr, &renderTarget->m_colorSRV[0]);
+    if (hr != S_OK) {
+      return false;
+    }
+
+    D3D11_TEXTURE2D_DESC stencilDepthDesc;
+    stencilDepthDesc.Width = width;
+    stencilDepthDesc.Height = height;
+    stencilDepthDesc.MipLevels = 1;
+    stencilDepthDesc.ArraySize = 1;
+    stencilDepthDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+    stencilDepthDesc.SampleDesc.Count = 1;
+    stencilDepthDesc.SampleDesc.Quality = 0;
+    stencilDepthDesc.Usage = D3D11_USAGE_DEFAULT;
+    stencilDepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    stencilDepthDesc.CPUAccessFlags = 0;
+    stencilDepthDesc.MiscFlags = NULL;
+
+    hr = device->CreateTexture2D(&stencilDepthDesc, nullptr, &renderTarget->m_depthStencil);
+    if (hr != S_OK) {
+      return false;
+    }
+    hr = device->CreateDepthStencilView(renderTarget->m_depthStencil, nullptr, &renderTarget->m_depthStencilView);
+    if (hr != S_OK) {
+      return false;
+    }
+
+    // create the rasterizor state
+    D3D11_RASTERIZER_DESC rastDesc;
+    rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
+    rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
+    rastDesc.FrontCounterClockwise = true;
+    rastDesc.DepthBias = 0;
+    rastDesc.DepthBiasClamp = 0;
+    rastDesc.SlopeScaledDepthBias = 0;
+    rastDesc.DepthClipEnable = TRUE;
+    rastDesc.ScissorEnable = true;
+    rastDesc.MultisampleEnable = true;
+    rastDesc.AntialiasedLineEnable = true;
+
+    hr = device->CreateRasterizerState(&rastDesc, rasterizerState);
+    if (hr != S_OK) {
+      return false;
+    }
+
+    D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+    ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+
+    depthStencilDesc.DepthEnable = true;
+    depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depthStencilDesc.StencilEnable = false;
+
+    hr = device->CreateDepthStencilState(&depthStencilDesc, depthStencilState);
+    if (hr != S_OK) {
+      return false;
+    }
+
+    D3D11_BUFFER_DESC cbDesc;
+    cbDesc.ByteWidth = sizeof(Matrix4);
+    cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+    cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    cbDesc.MiscFlags = 0;
+    cbDesc.StructureByteStride = 0;
+
+    hr = globalContext.pDevice->CreateBuffer(&cbDesc, NULL, constantBuffer);
+    if (hr != S_OK) {
+      return false;
+    }
+
+    return true;
+  }
+
 
   static bool PickAdaptor(IDXGIAdapter1 ** outAdaptor) {
     IDXGIAdapter1 * toReturn = nullptr;
@@ -250,7 +336,9 @@ namespace duckGfx {
     }
 
     // create the render state for the backbuffer
-    CreateToBackBufferRenderState(globalContext.pDevice, &globalContext.toBackbufferRS, &globalContext.toBackbufferDSS, &globalContext.toBackBufferPassCb);
+    if (!CreateToBackBufferRenderState(globalContext.pDevice, &globalContext.toBackbufferRS, &globalContext.toBackbufferDSS, &globalContext.toBackBufferPassCb)) {
+      return false;
+    }
 
     //light data
     D3D11_BUFFER_DESC cbDesc;
@@ -270,6 +358,26 @@ namespace duckGfx {
     globalContext.debugDrawMaterial = reinterpret_cast<Material*>(GenerateDebugDrawMaterial());
     globalContext.debugMaterialInstance = new MaterialInstance(globalContext.debugDrawMaterial);
 
+    globalContext.pMainColorRt = new RenderTarget2D();
+    if (!CreateMainColorPassData(globalContext.pDevice,
+                                 globalContext.width,
+                                 globalContext.height,
+                                 globalContext.pMainColorRt,
+                                 &globalContext.toMainColorRS,
+                                 &globalContext.toMainColorDSS,
+                                 &globalContext.toMainColorCb)) {
+      return false;
+    }
+
+    globalContext.backBufferQuad = new Mesh();
+    GenerateQuad(globalContext.pDevice, globalContext.backBufferQuad);
+
+    globalContext.toBackBufferMat = new Material();
+    CreateToBackbufferMaterial(globalContext.pDevice, globalContext.toBackBufferMat);
+    globalContext.toBackBufferMatInstance = new MaterialInstance(globalContext.toBackBufferMat);
+
+    CD3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
+    globalContext.pDevice->CreateSamplerState(&samplerDesc, &globalContext.toBackBufferSamplerSate);
 
     return true;
   }
@@ -285,36 +393,39 @@ namespace duckGfx {
       model->m_matInstance->SetParameter("gNormalTransform", invTrans);
     }
 
+    //------------------------------------------------------------------------------------------------------------
     // pass 1 : clear back buffer
     if (globalContext.annotator)
-      globalContext.annotator->BeginEvent(L"Clear Backbuffer");
-    RenderTarget2D * backBuffer = globalContext.pBackBufferRt;
-    BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
-
+      globalContext.annotator->BeginEvent(L"Clear Render Targets");
     static int counter = 0;
     // clear the back buffer, alternate colors so we know the back buffer is being cleared
-    float color[4] = { 0.0f, 0.2f, 0.6f, 0.0f };
-    float color2[4] = { 0.0f, 0.5f, 0.4f, 0.0f };
+    float color[4] = { 0.0f, 0.02f, 0.32f, 0.0f };
+    float color2[4] = { 0.0f, 0.21f, 0.133f, 0.0f };
+    bool useColor2 = false;
 
-    globalContext.pImmediateContext->ClearDepthStencilView(backBuffer->m_depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     if (counter / 60 == 1) {
-      globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color2);
+      useColor2 = true;
       if (counter == 119) {
         counter = 0;
       }
     }
-    else {
-      globalContext.pImmediateContext->ClearRenderTargetView(backBuffer->m_colorViews[0], color);
-    }
+
+    float backBufferColor[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    globalContext.pImmediateContext->ClearRenderTargetView(globalContext.pBackBufferRt->m_colorViews[0], backBufferColor);
+
+    globalContext.pImmediateContext->ClearRenderTargetView(globalContext.pMainColorRt->m_colorViews[0], useColor2 ? color2 : color);
+    globalContext.pImmediateContext->ClearDepthStencilView(globalContext.pMainColorRt->m_depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     if (globalContext.annotator)
       globalContext.annotator->EndEvent();
 
+
+    //------------------------------------------------------------------------------------------------------------
     if (globalContext.annotator)
-      globalContext.annotator->BeginEvent(L"Render To Backbuffer");
+      globalContext.annotator->BeginEvent(L"Main Color");
 
     // pass 2 : render to back buffer
-    BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
+    BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pMainColorRt);
 
     D3D11_VIEWPORT viewport;
     viewport.TopLeftX = 0;
@@ -333,8 +444,8 @@ namespace duckGfx {
     // pass data
     globalContext.pImmediateContext->RSSetViewports(1, &viewport);
     globalContext.pImmediateContext->RSSetScissorRects(1, &rect);
-    globalContext.pImmediateContext->RSSetState(globalContext.toBackbufferRS);
-    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.toBackbufferDSS, 0);
+    globalContext.pImmediateContext->RSSetState(globalContext.toMainColorRS);
+    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.toMainColorDSS, 0);
 
 
     //set up pass constant buffer
@@ -343,10 +454,10 @@ namespace duckGfx {
       cam = globalContext.theScene.m_mainCamera->m_viewProj;
 
     D3D11_MAPPED_SUBRESOURCE passCb;
-    globalContext.pImmediateContext->Map(globalContext.toBackBufferPassCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
+    globalContext.pImmediateContext->Map(globalContext.toMainColorCb, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &passCb);
     memcpy(passCb.pData, cam.v, sizeof(Matrix4));
-    globalContext.pImmediateContext->Unmap(globalContext.toBackBufferPassCb, 0);
-    globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toBackBufferPassCb);
+    globalContext.pImmediateContext->Unmap(globalContext.toMainColorCb, 0);
+    globalContext.pImmediateContext->VSSetConstantBuffers(1, 1, &globalContext.toMainColorCb);
 
     // set up lighting constant buffer
     UpdateLightingCb(&globalContext.theScene, &globalContext.lightingDataBuffer);
@@ -372,10 +483,11 @@ namespace duckGfx {
       globalContext.pImmediateContext->DrawIndexed(model->m_theMesh->idxCount, 0, 0);
     }
 
-
     if (globalContext.annotator)
       globalContext.annotator->EndEvent();
 
+
+    //------------------------------------------------------------------------------------------------------------
     if (globalContext.annotator)
       globalContext.annotator->BeginEvent(L"Debug Draw");
 
@@ -415,6 +527,28 @@ namespace duckGfx {
     if (globalContext.annotator)
       globalContext.annotator->EndEvent();
 
+    //------------------------------------------------------------------------------------------------------------
+    if (globalContext.annotator)
+      globalContext.annotator->BeginEvent(L"To Backbuffer");
+    BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
+
+    BindMaterial(globalContext.pImmediateContext, globalContext.toBackBufferMat, MaterialTechniqueID::kColor);
+    BindMesh(globalContext.pImmediateContext, *globalContext.backBufferQuad);
+
+    globalContext.pImmediateContext->PSSetSamplers(0, 1, &globalContext.toBackBufferSamplerSate);
+    globalContext.pImmediateContext->PSSetShaderResources(0, 1, &globalContext.pMainColorRt->m_colorSRV[0]);
+
+    globalContext.pImmediateContext->DrawIndexed(6, 0, 0);
+
+
+    if (globalContext.annotator)
+      globalContext.annotator->EndEvent();
+
+    ID3D11SamplerState * nullSampler = nullptr;
+    ID3D11ShaderResourceView * nullSRV = nullptr;
+    globalContext.pImmediateContext->PSSetSamplers(0, 1, &nullSampler);
+    globalContext.pImmediateContext->PSSetShaderResources(0, 1, &nullSRV);
+
 
     if (globalContext.annotator)
       globalContext.annotator->BeginEvent(L"Swap");
@@ -441,6 +575,12 @@ namespace duckGfx {
     globalContext.toBackbufferRS->Release();
     globalContext.toBackbufferDSS->Release();
     globalContext.toBackBufferPassCb->Release();
+
+    delete globalContext.pMainColorRt;
+    globalContext.pMainColorRt = nullptr;
+    globalContext.toMainColorRS->Release();
+    globalContext.toMainColorDSS->Release();
+    globalContext.toMainColorCb->Release();
 
     delete globalContext.debugLineMesh;
     delete globalContext.debugMaterialInstance;

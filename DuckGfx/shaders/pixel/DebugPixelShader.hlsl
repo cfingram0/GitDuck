@@ -8,5 +8,5 @@ cbuffer MATERIAL_DATA : register(b0) {
 
 float4 main(VS_Output input) : SV_TARGET
 {
-  return float4(color.xyz, 1);
+  return float4(pow(color.xyz, 2.2f), 1);
 }
