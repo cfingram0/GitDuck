@@ -377,8 +377,14 @@ namespace duckGfx {
     map4.elementType = MaterialParameterType::kFloat;
     map4.numValues = 1;
     map4.varName = "roughness";
-
     outMaterial->variables.push_back(map4);
+
+    Material::VariableMap map5;
+    map5.dataStartPs[MaterialTechniqueID::kColor] = sizeof(Vec4) + sizeof(float);
+    map5.elementType = MaterialParameterType::kFloat;
+    map5.numValues = 1;
+    map5.varName = "metalness";
+    outMaterial->variables.push_back(map5);
 
     return true;
   }

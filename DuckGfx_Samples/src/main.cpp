@@ -61,7 +61,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
   samples.push_back(new Cube_Test());
   samples.push_back(new Lighting_Test());
   samples.push_back(new DebugDraw_Test());
-  desiredSample = 3;
+  desiredSample = 2;
 
   //single threaded render loop
   MSG msg;

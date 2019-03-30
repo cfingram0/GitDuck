@@ -15,7 +15,8 @@ void Lighting_Test::Init() {
 
   m_matInst = duckGfx::IMaterialInstance::Create(m_material);
   m_matInst->SetParameter("color", Vec4(1, 0, 0, 1));
-  m_matInst->SetParameter("roughness", 50.0f);
+  m_matInst->SetParameter("roughness", 0.1f);
+  m_matInst->SetParameter("metalness", 0.0f);
 
   m_triangle->SetMaterialInstance(m_matInst);
 
@@ -31,15 +32,31 @@ void Lighting_Test::Init() {
   m_model2->SetMaterialInstance(m_matInst2);
 
   m_matInst2->SetParameter("color", Vec4(1, 1, 1, 1));
-  m_matInst2->SetParameter("roughness", 50.0f);
+  m_matInst2->SetParameter("roughness", 0.2f);
+  m_matInst2->SetParameter("metalness", 0.0f);
 
   m_modelTrans2 = TransformSRT(Vec3(10, 1, 10),
                                Quaternion(tag::Identity{}),
                                Vec3(0, -2, -5));
 
+
+  m_model3 = duckGfx::GenerateDebugCubeModel();
+  m_matInst3 = duckGfx::IMaterialInstance::Create(m_material);
+  m_model3->SetMaterialInstance(m_matInst3);
+
+  m_matInst3->SetParameter("color", Vec4(1.0, .98, .96, 1));
+  m_matInst3->SetParameter("roughness", 0.5f);
+  m_matInst3->SetParameter("metalness", 1.0f);
+
+
+  m_modelTrans3 = TransformSRT(Vec3(.5, .5, .5),
+                              Quaternion((0 * 3.14f) / 180.0f, Vec3(1, 1, 0)),
+                              Vec3(1, -1, -5));
+
+
   m_scene->SetAmbientColor(Vec3(0.05f, 0.05f, 0.05f));
-  m_scene->SetLightDir(Vec3(1, 1, 0));
-  m_scene->SetlightColor(Vec3(0.280f, 0.31f, 0.33f));
+  m_scene->SetLightDir(Normalize(Vec3(1, 2, .5)));
+  m_scene->SetlightColor(Vec3(.3,.3,.3));
 
   m_pLight = duckGfx::IPointLight::Create();
   m_pLight->SetColor(Vec3(1.0f, 0.57f, 0.16f));
@@ -101,6 +118,7 @@ void Lighting_Test::Init() {
 void Lighting_Test::OnStart() {
   m_scene->AddModel(m_triangle);
   m_scene->AddModel(m_model2);
+  m_scene->AddModel(m_model3);
   m_scene->SetMainCamera(m_camera);
   m_scene->AddLight(m_pLight);
   m_scene->AddModel(m_pLightModel);
@@ -119,6 +137,7 @@ void Lighting_Test::OnStart() {
 void Lighting_Test::Update(float dt) {
   // rotate the triangle
   m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(0.5f, 1, .2f));
+  m_modelTrans3.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(0.5f, 1, .2f));
   m_angle += 40.0f * dt;
 
   Quaternion rotate(std::sin(2 * m_angle * 3.14f / 180.0f), Vec3(1, 0, 1));
@@ -159,6 +178,7 @@ void Lighting_Test::Update(float dt) {
 
   m_triangle->SetTransform(m_modelTrans);
   m_model2->SetTransform(m_modelTrans2);
+  m_model3->SetTransform(m_modelTrans3);
 }
 
 void Lighting_Test::OnEnd() {
@@ -173,6 +193,7 @@ void Lighting_Test::OnEnd() {
   m_scene->RemoveModel(m_pLight2Model);
   m_scene->RemoveModel(m_sLightModel);
   m_scene->RemoveModel(m_sLight2Model);
+  m_scene->RemoveModel(m_model3);
 }
 
 void Lighting_Test::Shutdown() {
@@ -185,6 +206,11 @@ void Lighting_Test::Shutdown() {
   m_model2 = nullptr;
   duckGfx::IMaterialInstance::Destroy(m_matInst2);
   m_matInst2 = nullptr;
+
+  duckGfx::IModel::Destroy(m_model3);
+  m_model3 = nullptr;
+  duckGfx::IMaterialInstance::Destroy(m_matInst3);
+  m_matInst3 = nullptr;
 
   duckGfx::IMaterial::Destroy(m_material);
   m_material = nullptr;

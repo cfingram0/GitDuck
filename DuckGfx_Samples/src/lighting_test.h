@@ -21,6 +21,10 @@ class Lighting_Test : public ISample {
   duckGfx::IMaterialInstance * m_matInst2 = nullptr;
   TransformSRT m_modelTrans2{ tag::NoInit{} };
 
+  duckGfx::IModel * m_model3 = nullptr;
+  duckGfx::IMaterialInstance * m_matInst3 = nullptr;
+  TransformSRT m_modelTrans3{ tag::NoInit{} };
+
   duckGfx::IPointLight * m_pLight = nullptr;
   duckGfx::IModel * m_pLightModel = nullptr;
   duckGfx::IMaterialInstance * m_pLightMat = nullptr;
