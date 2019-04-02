@@ -663,4 +663,59 @@ namespace duckGfx {
     return true;
   }
 
+
+  IModel * CreateMesh(VertexFormat fmt, void * vertBuffer, uint64_t numVerts, uint32_t * idxBuffer, uint32_t numIdx) {
+    Mesh * mesh = new Mesh();
+    mesh->format = fmt;
+    mesh->topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    const uint32_t vertSize = VertSize(fmt);
+    mesh->vertSize = vertSize;
+
+    D3D11_BUFFER_DESC desc;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.ByteWidth = vertSize * numVerts;
+    desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.CPUAccessFlags = 0;
+    desc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData;
+    initData.pSysMem = vertBuffer;
+    initData.SysMemPitch = 0;
+    initData.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * dxVertBuffer;
+    HRESULT hr = globalContext.pDevice->CreateBuffer(&desc, &initData, &dxVertBuffer);
+    if (FAILED(hr)) {
+      return nullptr;
+    }
+    mesh->vertBuffer = dxVertBuffer;
+
+    D3D11_BUFFER_DESC desc_idx;
+    desc_idx.Usage = D3D11_USAGE_DEFAULT;
+    desc_idx.ByteWidth = sizeof(uint32_t) * numIdx;
+    desc_idx.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    desc_idx.CPUAccessFlags = 0;
+    desc_idx.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA initData_idx;
+    initData_idx.pSysMem = idxBuffer;
+    initData_idx.SysMemPitch = 0;
+    initData_idx.SysMemSlicePitch = 0;
+
+    ID3D11Buffer * dxIdxBuffer;
+    hr = globalContext.pDevice->CreateBuffer(&desc_idx, &initData_idx, &dxIdxBuffer);
+    if (FAILED(hr)) {
+      return nullptr;
+    }
+
+    mesh->idxBuffer = dxIdxBuffer;
+    mesh->idxCount = numIdx;
+
+    Model * mod = new Model();
+    mod->m_theMesh = mesh;
+
+    return mod;
+  }
+
 }

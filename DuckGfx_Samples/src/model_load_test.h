@@ -18,5 +18,11 @@ class ModelLoad_Test : public ISample {
   duckGfx::IMaterialInstance * m_matInst2 = nullptr;
   TransformSRT m_modelTrans2{ tag::NoInit{} };
 
+
+  duckGfx::IModel * m_model3 = nullptr;
+  duckGfx::IMaterialInstance * m_matInst3 = nullptr;
+  TransformSRT m_modelTrans3{ tag::NoInit{} };
+
+
   float m_time = 0.0f;
 };

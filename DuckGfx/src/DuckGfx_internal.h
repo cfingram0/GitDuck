@@ -50,35 +50,6 @@ namespace duckGfx {
 
   void BindRenderTarget2D(ID3D11DeviceContext * context, const RenderTarget2D & rt);
 
-
-  struct VertexFormat {
-    VertexFormat (): combinedVF(0) {}
-    VertexFormat(const VertexFormat & rhs) : combinedVF(rhs.combinedVF) {}
-
-    VertexFormat & operator= (const VertexFormat & rhs) {
-      combinedVF = rhs.combinedVF;
-    }
-
-    bool operator==(const VertexFormat & rhs) {
-      return combinedVF == rhs.combinedVF;
-    }
-
-    union {
-      struct {
-        uint8_t hasPosition : 1;
-        uint8_t hasNormals : 1;
-        uint8_t hasTangentFrame : 1; // tangent + bitangent
-        uint8_t hasBlendWeightsAndIndices : 1;
-        uint8_t numUVsets : 4;
-        uint8_t numColorSets : 4;
-      };
-
-      uint32_t combinedVF;
-    };
-  };
-
-  uint32_t VertSize(const VertexFormat & fmt);
-
   enum MaterialTechniqueID {
     kColor,
     kDepthOnly,
