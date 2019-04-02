@@ -237,7 +237,8 @@ namespace duckGfx {
   }
 
   Material::~Material() {
-    inputLayout->Release();
+    if(inputLayout)
+      inputLayout->Release();
 
     for (int32_t i = 0; i < MaterialTechniqueID::kCount; ++i) {
       MaterialTechnique & tech = techniques[i];

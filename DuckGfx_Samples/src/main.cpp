@@ -9,6 +9,7 @@
 #include "debug_draw_test.h"
 
 #include "input.h"
+#include "assimp\version.h"
 
 #define MAX_LOADSTRING 100
 
@@ -56,6 +57,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
   if (!duckGfx::Init(windowHandle, 1600, 900)) {
     return FALSE;
   }
+
+  uint32_t version = aiGetVersionMajor();
 
   samples.push_back(new Sample_Test());
   samples.push_back(new Cube_Test());
