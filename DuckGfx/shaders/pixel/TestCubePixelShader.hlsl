@@ -51,7 +51,7 @@ float G(float roughness, float NdotL, float NdotV) {
 }
 
 float3 F(float3 F0, float VdotH) {
-  return F0 + (1 - F0) * pow(2, (-5.55473 * VdotH - 6.98316) * VdotH);
+  return F0 + (1 - F0) * exp2((-5.55473 * VdotH - 6.98316) * VdotH);
 }
 
 float3 brdfLighting(float3 linLightColor, float3 lightDir, float3 diffColor, float3 normal, float3 toView, float roughness, float metalness) {

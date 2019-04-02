@@ -56,7 +56,7 @@ void Lighting_Test::Init() {
 
   m_scene->SetAmbientColor(Vec3(0.05f, 0.05f, 0.05f));
   m_scene->SetLightDir(Normalize(Vec3(1, 2, .5)));
-  m_scene->SetlightColor(Vec3(.3,.3,.3));
+  m_scene->SetlightColor(Vec3(.5,.5,.5));
 
   m_pLight = duckGfx::IPointLight::Create();
   m_pLight->SetColor(Vec3(1.0f, 0.57f, 0.16f));
