@@ -23,5 +23,6 @@ float4 main(VS_Output input) : SV_TARGET
 
   float4 finalColor = shaderTexture.Sample(shaderSampler, input.TexCoord);
   finalColor = pow(finalColor, 1.0f / 2.2f);
+
   return finalColor;
 }

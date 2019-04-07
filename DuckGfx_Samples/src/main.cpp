@@ -107,6 +107,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (input::IsTriggered(Key::NUM_4)) {
       desiredSample = 3;
     }
+    if (input::IsTriggered(Key::NUM_5)) {
+      desiredSample = 4;
+    }
     if (input::IsTriggered(Key::ESCAPE)) {
       running = false;
     }
@@ -172,12 +175,18 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow, HWND * outWnd)
                             WS_OVERLAPPEDWINDOW, 
                             CW_USEDEFAULT, 
                             0, 
-                            1600, // width
-                            900,  // height
+                            1616, // width
+                            939,  // height
                             nullptr, 
                             nullptr, 
                             hInstance, 
                             nullptr);
+
+  RECT client;
+  GetClientRect(hWnd, &client);
+
+  RECT window;
+  GetWindowRect(hWnd, &window);
 
   if (!hWnd)
   {

@@ -51,8 +51,8 @@ namespace duckGfx {
     rastDesc.SlopeScaledDepthBias = 0;
     rastDesc.DepthClipEnable = TRUE;
     rastDesc.ScissorEnable = true;
-    rastDesc.MultisampleEnable = true;
-    rastDesc.AntialiasedLineEnable = true;
+    rastDesc.MultisampleEnable = false;
+    rastDesc.AntialiasedLineEnable = false;
 
     device->CreateRasterizerState(&rastDesc, rasterizerState);
 
@@ -377,6 +377,7 @@ namespace duckGfx {
     globalContext.toBackBufferMatInstance = new MaterialInstance(globalContext.toBackBufferMat);
 
     CD3D11_SAMPLER_DESC samplerDesc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
+    samplerDesc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     globalContext.pDevice->CreateSamplerState(&samplerDesc, &globalContext.toBackBufferSamplerSate);
 
     return true;
@@ -531,6 +532,9 @@ namespace duckGfx {
     if (globalContext.annotator)
       globalContext.annotator->BeginEvent(L"To Backbuffer");
     BindRenderTarget2D(globalContext.pImmediateContext, *globalContext.pBackBufferRt);
+
+    globalContext.pImmediateContext->RSSetState(globalContext.toBackbufferRS);
+    globalContext.pImmediateContext->OMSetDepthStencilState(globalContext.toBackbufferDSS, 0);
 
     BindMaterial(globalContext.pImmediateContext, globalContext.toBackBufferMat, MaterialTechniqueID::kColor);
     BindMesh(globalContext.pImmediateContext, *globalContext.backBufferQuad);
