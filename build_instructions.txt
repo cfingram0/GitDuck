@@ -1,0 +1,13 @@
+1. run external\genie\genie.exe vs2015 from this directory (Should build vs2015 solution in .build folder)
+    1.a Alternativly, use "genie vs2019" to generate a 2019 solution
+2. in visual studio, go to DuckGfx->DuckGfx->Shaders
+    2.a Right click Pixel Shaders
+    2.b select "Item Type" -> HLSL, select apply
+    2.c select HLSL Compiler -> General -> Shader Model, set to "Shader Model 5.0"
+    2.d select HLSL Compiler -> General -> Shader Type, set to "Pixel Shader"
+    
+    2.e repeat the above steps for "Vertex Shaders", but set to "Vertex Shader" in shader type.
+    
+3. Compile x64, but don't run.
+4. Copy the contents of the "Models" folder, and "\External\Assimp\bin\x64", to the generated x64 folder where the .exe is located.
+5. run project (press the keys 1, 2, 3, 4, or 5 to change the scene)

@@ -1,6 +1,7 @@
 #include "debug_draw_test.h"
 #include "DuckGfx_utils.h"
 #include "input.h"
+#include <cmath>
 
 void DebugDraw_Test::Init() {
   m_scene = duckGfx::GetScene();
@@ -58,10 +59,10 @@ void DebugDraw_Test::Update(float dt) {
 
   float rotAngle = 0;
   if (input::IsPressed(Key::Q)) {
-    rotAngle += 1 * (3.14) / 180.0f;
+    rotAngle += 1 * (3.14f) / 180.0f;
   }
   if (input::IsPressed(Key::E)) {
-    rotAngle -= 1 * (3.14) / 180.0f;
+    rotAngle -= 1 * (3.14f) / 180.0f;
   }
 
   Quaternion rotation(rotAngle, Vec3(0, 1, 0));

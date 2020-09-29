@@ -81,7 +81,7 @@ void ModelLoad_Test::Init() {
   m_matInst3 = duckGfx::IMaterialInstance::Create(m_material);
   m_model3->SetMaterialInstance(m_matInst3);
 
-  m_matInst3->SetParameter("color", Vec4(1, .4, .4, 1));
+  m_matInst3->SetParameter("color", Vec4(1, .4f, .4f, 1));
   m_matInst3->SetParameter("roughness", 0.2f);
 
   m_modelTrans3 = TransformSRT(Vec3(1, 1, 1),
@@ -122,10 +122,10 @@ void ModelLoad_Test::Update(float dt) {
 
   float rotAngle = 0;
   if (input::IsPressed(Key::Q)) {
-    rotAngle += 1 * (3.14) / 180.0f;
+    rotAngle += 1 * (3.14f) / 180.0f;
   }
   if (input::IsPressed(Key::E)) {
-    rotAngle -= 1 * (3.14) / 180.0f;
+    rotAngle -= 1 * (3.14f) / 180.0f;
   }
 
   Quaternion rotation(rotAngle, Vec3(0, 1, 0));

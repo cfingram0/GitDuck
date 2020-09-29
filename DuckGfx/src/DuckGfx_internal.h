@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
+#include <cmath>
 
 #include "DuckGfx.h"
 

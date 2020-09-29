@@ -2,6 +2,8 @@
 #include "DuckGfx_utils.h"
 #include "input.h"
 
+#include <cmath>
+
 void Lighting_Test::Init() {
   m_scene = duckGfx::GetScene();
   m_triangle = duckGfx::GenerateDebugCubeModel();
@@ -44,7 +46,7 @@ void Lighting_Test::Init() {
   m_matInst3 = duckGfx::IMaterialInstance::Create(m_material);
   m_model3->SetMaterialInstance(m_matInst3);
 
-  m_matInst3->SetParameter("color", Vec4(1.0, .98, .96, 1));
+  m_matInst3->SetParameter("color", Vec4(1.0f, .98f, .96f, 1.0f));
   m_matInst3->SetParameter("roughness", 0.5f);
   m_matInst3->SetParameter("metalness", 1.0f);
 

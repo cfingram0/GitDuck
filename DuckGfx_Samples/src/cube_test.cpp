@@ -52,7 +52,7 @@ void Cube_Test::OnStart() {
 void Cube_Test::Update(float dt) {
   // rotate the triangle
   m_modelTrans.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(1, 1, 0));
-  m_modelTrans2.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(.2, 1, 0));
+  m_modelTrans2.rotation = Quaternion(m_angle * (3.14f / 180.0f), Vec3(.2f, 1, 0));
   m_angle += 90.0f * dt;
 
   Vec3 offset{ tag::Zero{} };

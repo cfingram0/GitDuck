@@ -674,7 +674,7 @@ namespace duckGfx {
 
     D3D11_BUFFER_DESC desc;
     desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.ByteWidth = vertSize * numVerts;
+    desc.ByteWidth = (UINT)(vertSize * numVerts);
     desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
